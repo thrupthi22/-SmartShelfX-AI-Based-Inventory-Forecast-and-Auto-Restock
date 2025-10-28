@@ -1,0 +1,10 @@
+# Java / Spring Boot
+.idea/
+target/
+*.log
+
+# Node / React
+node_modules/
+build/
+.env
+.DS_Store
