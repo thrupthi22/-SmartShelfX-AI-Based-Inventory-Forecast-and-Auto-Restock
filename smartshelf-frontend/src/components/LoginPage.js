@@ -1,12 +1,10 @@
 // In src/components/LoginPage.js
 
-// In src/components/LoginPage.js
-
 import React, { useState } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-// --- NEW MUI IMPORTS ---
+// --- MUI IMPORTS (Unchanged) ---
 import {
   Button,
   CssBaseline,
@@ -19,7 +17,7 @@ import {
 } from '@mui/material';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import Avatar from '@mui/material/Avatar';
-// --- END NEW IMPORTS ---
+// --- END IMPORTS ---
 
 function LoginPage() {
   const [email, setEmail] = useState('');
@@ -27,6 +25,7 @@ function LoginPage() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
+  // --- THIS FUNCTION IS UPDATED ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -37,8 +36,22 @@ function LoginPage() {
         password: password
       });
 
-      localStorage.setItem('token', response.data.token);
-      navigate('/dashboard');
+      // 1. Get BOTH token and role from the response
+      const token = response.data.token;
+      const role = response.data.role;
+
+      // 2. Save BOTH to localStorage
+      localStorage.setItem('token', token);
+      localStorage.setItem('role', role); // <-- NEW
+
+      // 3. NEW: Role-based redirect logic
+      if (role === "ADMIN") {
+          navigate('/admin-dashboard');
+      } else if (role === "STORE_MANAGER") {
+          navigate('/dashboard'); // This is now the manager's dashboard
+      } else { // This covers the "USER" role
+          navigate('/user-dashboard');
+      }
 
     } catch (err) {
       console.error("Login error:", err);
@@ -51,11 +64,12 @@ function LoginPage() {
       }
     }
   };
+  // --- END OF UPDATED FUNCTION ---
 
   return (
-    // Container component centers our content
+    // The rest of your MUI form is unchanged
     <Container component="main" maxWidth="xs">
-      <CssBaseline /> {/* Adds a standard, clean baseline style */}
+      <CssBaseline />
       <Box
         sx={{
           marginTop: 8,
@@ -75,7 +89,6 @@ function LoginPage() {
           Login to SmartShelf
         </Typography>
 
-        {/* Our form, now using Box and noValidate */}
         <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
           <TextField
             margin="normal"
@@ -111,15 +124,14 @@ function LoginPage() {
           <Button
             type="submit"
             fullWidth
-            variant="contained" // This gives it the "professional" filled-in look
-            sx={{ mt: 3, mb: 2 }} // Adds margin top/bottom
+            variant="contained"
+            sx={{ mt: 3, mb: 2 }}
           >
             Sign In
           </Button>
 
           <Grid container>
             <Grid item xs>
-              {/* Use MUI's Link, but tell it to act like a React Router Link */}
               <Link component={RouterLink} to="/forgot-password" variant="body2">
                 Forgot password?
               </Link>

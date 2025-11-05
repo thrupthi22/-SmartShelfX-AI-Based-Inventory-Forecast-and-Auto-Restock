@@ -29,15 +29,13 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import javax.crypto.SecretKey;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.List;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
 public class SecurityConfig {
 
-    // --- 1. THIS IS THE NEW KEY BEAN ---
-    // This creates one single, shared key for the whole application
     @Bean
     public SecretKey jwtSecretKey() {
         return Keys.secretKeyFor(io.jsonwebtoken.SignatureAlgorithm.HS512);
@@ -54,7 +52,8 @@ public class SecurityConfig {
                 .map(user -> new org.springframework.security.core.userdetails.User(
                         user.getEmail(),
                         user.getPassword(),
-                        new ArrayList<>()))
+                        List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority(user.getRole().name()))
+                ))
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
     }
 
@@ -63,15 +62,14 @@ public class SecurityConfig {
         return authConfig.getAuthenticationManager();
     }
 
-    // --- 2. The filter class now takes the key in its constructor ---
     public class JwtTokenFilter extends OncePerRequestFilter {
 
         private final UserDetailsService userDetailsService;
-        private final SecretKey jwtSecretKey; // It now holds the shared key
+        private final SecretKey jwtSecretKey;
 
         public JwtTokenFilter(UserDetailsService userDetailsService, SecretKey jwtSecretKey) {
             this.userDetailsService = userDetailsService;
-            this.jwtSecretKey = jwtSecretKey; // Key is passed in
+            this.jwtSecretKey = jwtSecretKey;
         }
 
         @Override
@@ -87,7 +85,6 @@ public class SecurityConfig {
 
                 String token = header.substring(7);
 
-                // It now uses the shared key to validate
                 Claims claims = Jwts.parserBuilder()
                         .setSigningKey(jwtSecretKey)
                         .build()
@@ -109,13 +106,12 @@ public class SecurityConfig {
         }
     }
 
-    // --- 3. The filter BEAN now injects the UserDetailsService AND the SecretKey ---
     @Bean
     public JwtTokenFilter authenticationJwtTokenFilter(UserDetailsService userDetailsService, SecretKey jwtSecretKey) {
-        // Spring finds our key bean and passes it to the constructor
         return new JwtTokenFilter(userDetailsService, jwtSecretKey);
     }
 
+    // --- THIS BEAN IS UPDATED ---
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, JwtTokenFilter jwtTokenFilter) throws Exception {
         http
@@ -124,9 +120,20 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/products/**").authenticated()
-                        .anyRequest().authenticated()
+                        .requestMatchers("/api/auth/**").permitAll() // Allows /login and /register
+
+                        // --- UPDATED & NEW RULES ---
+
+                        // 1. Allow ANY authenticated user (USER, MANAGER, ADMIN) to READ products
+                        .requestMatchers(HttpMethod.GET, "/api/products", "/api/products/**").authenticated()
+
+                        // 2. Lock down WRITE access (POST, PUT, DELETE) for products to MANAGERS/ADMINS
+                        .requestMatchers("/api/products/**").hasAnyAuthority("STORE_MANAGER", "ADMIN")
+
+                        // 3. Lock down ALL access for sales to MANAGERS/ADMINS
+                        .requestMatchers("/api/sales/**").hasAnyAuthority("STORE_MANAGER", "ADMIN")
+
+                        .anyRequest().authenticated() // All other requests must be authenticated
                 );
 
         http.addFilterBefore(jwtTokenFilter, UsernamePasswordAuthenticationFilter.class);

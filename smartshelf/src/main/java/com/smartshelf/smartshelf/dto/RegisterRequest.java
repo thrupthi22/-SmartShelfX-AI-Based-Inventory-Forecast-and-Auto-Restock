@@ -1,46 +1,15 @@
-package com.smartshelf.smartshelf.model;
+package com.smartshelf.smartshelf.dto;
 
-import jakarta.persistence.*;
+public class RegisterRequest {
 
-@Entity
-@Table(name = "users")
-public class User {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(nullable = false)
     private String fullName;
-
-    @Column(nullable = false, unique = true)
     private String email;
-
-    @Column(nullable = false)
     private String password;
-
     private String contact;
-
-    // --- NEW FIELDS ---
-    @Enumerated(EnumType.STRING) // Tells JPA to store the enum as a String ("USER", "ADMIN")
-    @Column(nullable = false)
-    private Role role;
-
     private String location;
-    // --- END NEW FIELDS ---
-
-
-    // --- No-argument constructor (required by JPA) ---
-    public User() {
-    }
+    private String role; // <-- 1. NEW FIELD
 
     // --- Getters and Setters ---
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
 
     public String getFullName() {
         return fullName;
@@ -74,20 +43,20 @@ public class User {
         this.contact = contact;
     }
 
-    // --- NEW GETTERS AND SETTERS ---
-    public Role getRole() {
-        return role;
-    }
-
-    public void setRole(Role role) {
-        this.role = role;
-    }
-
     public String getLocation() {
         return location;
     }
 
     public void setLocation(String location) {
         this.location = location;
+    }
+
+    // --- 2. NEW GETTER AND SETTER ---
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
     }
 }

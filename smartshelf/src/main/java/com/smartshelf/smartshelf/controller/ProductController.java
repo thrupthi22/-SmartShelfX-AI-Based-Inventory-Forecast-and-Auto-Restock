@@ -1,4 +1,4 @@
-package com.smartshelf.smartshelf.controller; // Make sure package is correct
+package com.smartshelf.smartshelf.controller;
 
 import com.smartshelf.smartshelf.model.Product;
 import com.smartshelf.smartshelf.repository.ProductRepository;
@@ -9,8 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/products") // All URLs here start with /api/products
-// We don't need @CrossOrigin here because WebConfig handles it
+@RequestMapping("/api/products")
 public class ProductController {
 
     private final ProductRepository productRepository;
@@ -20,19 +19,25 @@ public class ProductController {
         this.productRepository = productRepository;
     }
 
-    // --- CREATE ---
+    // --- CREATE (Unchanged) ---
     @PostMapping
     public Product createProduct(@RequestBody Product product) {
         return productRepository.save(product);
     }
 
-    // --- READ (Get All) ---
+    // --- UPDATED READ (Get All) ---
     @GetMapping
-    public List<Product> getAllProducts() {
-        return productRepository.findAll();
+    public List<Product> getAllProducts(
+            // We accept these as optional URL parameters
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String supplier,
+            @RequestParam(required = false) Integer maxStock
+    ) {
+        // We pass the (null or not-null) values to our new query
+        return productRepository.findWithFilters(category, supplier, maxStock);
     }
 
-    // --- READ (Get One by ID) ---
+    // --- READ (Get One by ID) (Unchanged) ---
     @GetMapping("/{id}")
     public ResponseEntity<Product> getProductById(@PathVariable Long id) {
         return productRepository.findById(id)
@@ -40,7 +45,7 @@ public class ProductController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // --- UPDATE ---
+    // --- UPDATE (Unchanged) ---
     @PutMapping("/{id}")
     public ResponseEntity<Product> updateProduct(@PathVariable Long id, @RequestBody Product productDetails) {
         return productRepository.findById(id)
@@ -55,7 +60,7 @@ public class ProductController {
                 }).orElse(ResponseEntity.notFound().build());
     }
 
-    // --- DELETE ---
+    // --- DELETE (Unchanged) ---
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteProduct(@PathVariable Long id) {
         return productRepository.findById(id)
