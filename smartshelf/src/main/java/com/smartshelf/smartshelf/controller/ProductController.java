@@ -20,6 +20,8 @@ public class ProductController {
     }
 
     // --- CREATE (Unchanged) ---
+    // This method already works because it saves the entire `product` object,
+    // which will include the new `imageUrl` field from the request.
     @PostMapping
     public Product createProduct(@RequestBody Product product) {
         return productRepository.save(product);
@@ -45,7 +47,7 @@ public class ProductController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // --- UPDATE (Unchanged) ---
+    // --- UPDATE (THIS IS THE UPDATED METHOD) ---
     @PutMapping("/{id}")
     public ResponseEntity<Product> updateProduct(@PathVariable Long id, @RequestBody Product productDetails) {
         return productRepository.findById(id)
@@ -55,6 +57,10 @@ public class ProductController {
                     product.setQuantity(productDetails.getQuantity());
                     product.setPrice(productDetails.getPrice());
                     product.setSupplier(productDetails.getSupplier());
+
+                    // --- THIS IS THE NEW LINE ---
+                    product.setImageUrl(productDetails.getImageUrl());
+
                     Product updatedProduct = productRepository.save(product);
                     return ResponseEntity.ok(updatedProduct);
                 }).orElse(ResponseEntity.notFound().build());

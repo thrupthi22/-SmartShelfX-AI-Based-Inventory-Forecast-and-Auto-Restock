@@ -1,31 +1,35 @@
 // In src/components/AdminDashboard.js
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react'; // 1. Import useContext & useCallback
 import api from '../api/api';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
 
 // --- MUI IMPORTS ---
 import {
-  AppBar,
-  Box,
-  Button,
-  Container,
-  CssBaseline,
-  Modal,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TextField,
-  Toolbar,
-  Typography,
-  Paper,
-  CircularProgress
+  AppBar, Box, Button, Container, CssBaseline, Modal, Table, TableBody,
+  TableCell, TableContainer, TableHead, TableRow, TextField, Toolbar,
+  Typography, Paper, CircularProgress, Grid,
+  // --- LAYOUT IMPORTS ---
+  Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Divider,
+  // --- 2. NEW IMPORTS for Theme ---
+  IconButton,
+  useTheme
 } from '@mui/material';
+// --- ICONS ---
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import BarChartIcon from '@mui/icons-material/BarChart';
+import LogoutIcon from '@mui/icons-material/Logout';
+import FilterAltIcon from '@mui/icons-material/FilterAlt';
+import ClearIcon from '@mui/icons-material/Clear';
+// --- 3. NEW ICONS for Theme ---
+import Brightness4Icon from '@mui/icons-material/Brightness4'; // Dark mode
+import Brightness7Icon from '@mui/icons-material/Brightness7'; // Light mode
 
-// --- Modal Style (Same as Manager's dashboard) ---
+import { ThemeContext } from '../ThemeContext'; // 4. Import our context
+
+const drawerWidth = 240;
+
+// --- Modal Style ---
 const modalStyle = {
   position: 'absolute',
   top: '50%',
@@ -33,7 +37,8 @@ const modalStyle = {
   transform: 'translate(-50%, -50%)',
   width: 400,
   bgcolor: 'background.paper',
-  border: '2px solid #000',
+  border: 'none',
+  borderRadius: 2,
   boxShadow: 24,
   p: 4,
   display: 'flex',
@@ -42,24 +47,37 @@ const modalStyle = {
 };
 
 function AdminDashboard() {
+  // --- 5. GET THEME AND TOGGLE FUNCTION ---
+  const theme = useTheme();
+  const colorMode = useContext(ThemeContext);
+
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  // --- State for "Edit" Modal ---
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
 
-  useEffect(() => {
-    fetchProducts();
-  }, []);
+  const [filters, setFilters] = useState({
+    category: '',
+    supplier: '',
+    maxStock: '',
+  });
 
-  const fetchProducts = async () => {
+  // --- 6. OPTIMIZED fetchProducts ---
+  // We wrap this in useCallback to fix the useEffect warning
+  const fetchProducts = useCallback(async (currentFilters = filters) => {
     setLoading(true);
     setError('');
+
+    const params = new URLSearchParams();
+    if (currentFilters.category) params.append('category', currentFilters.category);
+    if (currentFilters.supplier) params.append('supplier', currentFilters.supplier);
+    if (currentFilters.maxStock) params.append('maxStock', currentFilters.maxStock);
+
     try {
-      const response = await api.get('/products');
+      const response = await api.get('/products', { params });
       setProducts(response.data);
     } catch (err) {
       console.error("Error fetching products:", err);
@@ -73,7 +91,12 @@ function AdminDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters, navigate]); // Dependencies for this function
+
+  // --- 7. FIXED useEffect ---
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]); // Now it correctly depends on the stable fetchProducts function
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -81,68 +104,162 @@ function AdminDashboard() {
     navigate('/login');
   };
 
-  // --- "Edit" Modal Functions (Kept from plan) ---
+  // --- "Edit" Modal Functions ---
   const handleOpenEditModal = (product) => {
     setEditingProduct(product);
     setIsEditModalOpen(true);
   };
-
   const handleCloseEditModal = () => {
     setIsEditModalOpen(false);
     setEditingProduct(null);
   };
-
   const handleEditFormChange = (e) => {
     const { name, value } = e.target;
     setEditingProduct((prev) => ({ ...prev, [name]: value }));
   };
-
   const handleUpdateSubmit = async (e) => {
     e.preventDefault();
     if (!editingProduct) return;
     try {
       await api.put(`/products/${editingProduct.id}`, editingProduct);
       handleCloseEditModal();
-      fetchProducts();
+      fetchProducts(filters); // Refresh list, keeping filters
     } catch (err) {
       console.error("Error updating product:", err);
       setError("Failed to update product.");
     }
   };
 
+  // --- Filter Handlers ---
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+  const onFilterSubmit = () => {
+    fetchProducts(filters);
+  };
+  const onFilterClear = () => {
+    const clearedFilters = { category: '', supplier: '', maxStock: '' };
+    setFilters(clearedFilters);
+    fetchProducts(clearedFilters);
+  };
+
   // --- RENDER LOGIC ---
   return (
-    <Box sx={{ display: 'flex' }}>
+    <Box sx={{ display: 'flex', bgcolor: 'background.default', minHeight: '100vh' }}>
       <CssBaseline />
-      <AppBar component="nav">
-        <Toolbar>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Admin Dashboard
+
+      {/* --- SIDEBAR --- */}
+      <Drawer
+        variant="permanent"
+        sx={{
+          width: drawerWidth,
+          flexShrink: 0,
+          [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: 'border-box' },
+        }}
+      >
+        <Toolbar sx={{ display: 'flex', alignItems: 'center', p: 2 }}>
+          <img src="/logo192.png" alt="logo" style={{ width: 32, height: 32, marginRight: 12 }} />
+          <Typography variant="h6" noWrap sx={{ fontWeight: 'bold' }}>
+            SmartShelf
           </Typography>
-          <Button color="inherit" onClick={handleLogout}>
-            Logout
-          </Button>
         </Toolbar>
-      </AppBar>
+        <Box sx={{ overflow: 'auto', p: 1 }}>
+          <Typography variant="caption" sx={{ pl: 2, color: 'text.secondary' }}>NAVIGATION</Typography>
+          <List>
+            <ListItem disablePadding>
+              <ListItemButton component={RouterLink} to="/admin-dashboard" selected>
+                <ListItemIcon><DashboardIcon /></ListItemIcon>
+                <ListItemText primary="Admin Dashboard" />
+              </ListItemButton>
+            </ListItem>
+            <ListItem disablePadding>
+              <ListItemButton component={RouterLink} to="/sales-report">
+                <ListItemIcon><BarChartIcon /></ListItemIcon>
+                <ListItemText primary="Sales Report" />
+              </ListItemButton>
+            </ListItem>
+          </List>
+          <Divider sx={{ my: 2 }} />
+          <List>
+            {/* --- 8. NEW THEME TOGGLE BUTTON --- */}
+            <ListItem disablePadding>
+              <ListItemButton onClick={colorMode.toggleTheme}>
+                <ListItemIcon>
+                  {theme.palette.mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
+                </ListItemIcon>
+                <ListItemText primary={theme.palette.mode === 'dark' ? 'Light Mode' : 'Dark Mode'} />
+              </ListItemButton>
+            </ListItem>
+            {/* --- END TOGGLE BUTTON --- */}
 
-      <Container component="main" sx={{ mt: 10, p: 3 }}>
-
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h5">Product Management (Admin)</Typography>
-          {/* "Add" and "Record Sale" buttons are intentionally removed for Admin */}
+            <ListItem disablePadding>
+              <ListItemButton onClick={handleLogout}>
+                <ListItemIcon><LogoutIcon /></ListItemIcon>
+                <ListItemText primary="Logout" />
+              </ListItemButton>
+            </ListItem>
+          </List>
         </Box>
+      </Drawer>
+      {/* --- END SIDEBAR --- */}
+
+      {/* --- MAIN CONTENT AREA --- */}
+      <Box component="main" sx={{ flexGrow: 1, p: 3, ml: `${drawerWidth}px` }}>
+        {/* Header Bar */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Box>
+            <Typography variant="h4" sx={{ fontWeight: 'bold' }}>Admin Control Panel</Typography>
+            <Typography variant="body1" color="text.secondary">Oversee products and manage system reports.</Typography>
+          </Box>
+          <Button
+            variant="outlined"
+            color="primary"
+            component={RouterLink}
+            to="/sales-report"
+          >
+            View Full Sales Report
+          </Button>
+        </Box>
+
+        {/* --- FILTER BAR --- */}
+        <Paper sx={{ p: 2, mb: 3, borderRadius: 3 }}>
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} sm={3}>
+              <TextField fullWidth label="Filter by Category" name="category" value={filters.category} onChange={handleFilterChange} variant="outlined" size="small" />
+            </Grid>
+            <Grid item xs={12} sm={3}>
+              <TextField fullWidth label="Filter by Supplier" name="supplier" value={filters.supplier} onChange={handleFilterChange} variant="outlined" size="small" />
+            </Grid>
+            <Grid item xs={12} sm={3}>
+              <TextField fullWidth label="Show Stock <=" name="maxStock" type="number" value={filters.maxStock} onChange={handleFilterChange} variant="outlined" size="small" />
+            </Grid>
+            <Grid item xs={12} sm={3} sx={{ display: 'flex', gap: 1 }}>
+              <Button fullWidth variant="contained" onClick={onFilterSubmit} startIcon={<FilterAltIcon />}>
+                Filter
+              </Button>
+              <Button fullWidth variant="outlined" onClick={onFilterClear} startIcon={<ClearIcon />}>
+                Clear
+              </Button>
+            </Grid>
+          </Grid>
+        </Paper>
 
         {loading && <Box sx={{ display: 'flex', justifyContent: 'center', my: 5 }}><CircularProgress /></Box>}
         {error && <Typography color="error" align="center" sx={{ my: 3 }}>{error}</Typography>}
 
+        {/* --- Product Table (Admin version) --- */}
         {!loading && !error && (
-          <Paper sx={{ width: '100%', overflow: 'hidden' }}>
+          <Paper sx={{ width: '100%', overflow: 'hidden', borderRadius: 3 }}>
             <TableContainer>
               <Table stickyHeader>
                 <TableHead>
                   <TableRow>
                     <TableCell sx={{ fontWeight: 'bold' }}>ID</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Product Name</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Product</TableCell>
                     <TableCell sx={{ fontWeight: 'bold' }}>Category</TableCell>
                     <TableCell sx={{ fontWeight: 'bold' }}>Quantity</TableCell>
                     <TableCell sx={{ fontWeight: 'bold' }}>Price</TableCell>
@@ -154,7 +271,16 @@ function AdminDashboard() {
                   {products.map((product) => (
                     <TableRow hover key={product.id}>
                       <TableCell>{product.id}</TableCell>
-                      <TableCell>{product.productName}</TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <img
+                            src={product.imageUrl || 'https://via.placeholder.com/40'}
+                            alt={product.productName}
+                            style={{ width: 40, height: 40, marginRight: 12, borderRadius: 4 }}
+                          />
+                          {product.productName}
+                        </Box>
+                      </TableCell>
                       <TableCell>{product.category}</TableCell>
                       <TableCell sx={{ color: product.quantity < 20 ? 'red' : 'inherit', fontWeight: product.quantity < 20 ? 'bold' : 'normal' }}>
                         {product.quantity}
@@ -162,7 +288,6 @@ function AdminDashboard() {
                       <TableCell>${product.price.toFixed(2)}</TableCell>
                       <TableCell>{product.supplier}</TableCell>
                       <TableCell>
-                        {/* Admin only has "Edit" access */}
                         <Button
                           variant="outlined"
                           size="small"
@@ -171,7 +296,6 @@ function AdminDashboard() {
                         >
                           Edit
                         </Button>
-                        {/* "Delete" button is intentionally removed */}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -181,7 +305,7 @@ function AdminDashboard() {
           </Paper>
         )}
 
-        {/* --- Edit Product Modal (Kept) --- */}
+        {/* --- Edit Product Modal (Unchanged, now with imageUrl) --- */}
         <Modal open={isEditModalOpen} onClose={handleCloseEditModal}>
           <Box component="form" onSubmit={handleUpdateSubmit} sx={modalStyle}>
             <Typography variant="h6">Edit Product (ID: {editingProduct?.id})</Typography>
@@ -190,6 +314,7 @@ function AdminDashboard() {
             <TextField name="quantity" label="Quantity" type="number" value={editingProduct?.quantity || 0} onChange={handleEditFormChange} required fullWidth />
             <TextField name="price" label="Price" type="number" inputProps={{ step: "0.01" }} value={editingProduct?.price || 0.0} onChange={handleEditFormChange} required fullWidth />
             <TextField name="supplier" label="Supplier" value={editingProduct?.supplier || ''} onChange={handleEditFormChange} fullWidth />
+            <TextField name="imageUrl" label="Image URL" value={editingProduct?.imageUrl || ''} onChange={handleEditFormChange} fullWidth />
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 2 }}>
               <Button variant="outlined" onClick={handleCloseEditModal}>Cancel</Button>
               <Button variant="contained" type="submit">Save Changes</Button>
@@ -197,7 +322,7 @@ function AdminDashboard() {
           </Box>
         </Modal>
 
-      </Container>
+      </Box>
     </Box>
   );
 }

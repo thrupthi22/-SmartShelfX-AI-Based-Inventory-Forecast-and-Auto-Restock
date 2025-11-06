@@ -21,13 +21,15 @@ public class Product {
     private double price;
     private String supplier;
 
-    // --- 1. No-argument constructor ---
-    // JPA requires this to create new instances of your entity
+    // --- 1. NEW FIELD ---
+    @Column(length = 512) // Set a reasonable length for a URL
+    private String imageUrl;
+
+    // --- 2. No-argument constructor ---
     public Product() {
     }
 
-    // --- 2. Getters and Setters ---
-    // Your IDE can generate these, but here they are:
+    // --- 3. Getters and Setters (for all existing fields) ---
 
     public Long getId() {
         return id;
@@ -75,5 +77,14 @@ public class Product {
 
     public void setSupplier(String supplier) {
         this.supplier = supplier;
+    }
+
+    // --- 4. GETTER AND SETTER FOR NEW FIELD ---
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 }
