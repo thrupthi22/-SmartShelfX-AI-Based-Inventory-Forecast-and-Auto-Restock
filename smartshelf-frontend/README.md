@@ -1,70 +1,109 @@
-# Getting Started with Create React App
+# 🧠 SmartShelfX – AI-Based Inventory Forecast & Auto-Restock System
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+SmartShelfX is a full-stack AI-powered inventory management platform that automates restocking and optimizes inventory levels.  
+It uses predictive analytics to forecast demand, prevent stockouts, and improve supply chain efficiency.  
+Built with **React (frontend)**, **Spring Boot (backend)**, and **MySQL (database)**.
 
-## Available Scripts
+---
 
-In the project directory, you can run:
+## 🚀 Features Overview
 
-### `npm start`
+### 🔐 User & Role Management
+- Login and registration with roles: **Admin**, **Store Manager**, and **User**
+- Secure authentication system with role-based dashboard access  
+- Location field included during registration  
+- Roles:
+  - **Admin** → View system stats, manage users  
+  - **Store Manager** → Manage products, view and record sales  
+  - **User** → Browse and purchase products  
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+---
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### 🧾 Inventory Management (CRUD Operations)
+- Store Manager can **Add / Edit / Delete / View** products  
+- Product details include:
+  - Product ID, Name, Category, Quantity, Price, Supplier  
+- Real-time stock updates reflected across dashboards  
 
-### `npm test`
+---
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### 💰 Sales Management
+- Store Manager can record daily or weekly product sales  
+- Sales reports can be filtered by date or product  
+- Data stored in the database for future AI analysis  
 
-### `npm run build`
+---
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### 🛒 User Shopping Dashboard
+- Users can view all available products in a **colorful, shopping-style UI**  
+- Features **“Add to Cart”** and **“Buy Now”** options  
+- Purchases automatically update the **Sales Record Table**  
+- Store Manager dashboard reflects new sales instantly  
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+---
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### 🌗 Dark / Light Mode
+- Toggle between **Dark** and **Light** themes  
+- Smooth transitions and color adjustments for accessibility  
+- Theme preference saved locally for user convenience  
 
-### `npm run eject`
+---
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### 🤖 AI Forecast & Auto-Restock (Upcoming)
+- Analyze historical sales data  
+- Predict product demand  
+- Auto-generate restock suggestions and purchase orders  
+- Integration planned with **Python (TensorFlow / Scikit-learn)**  
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+---
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## 🧰 Tech Stack
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+| Layer | Technology |
+|-------|-------------|
+| **Frontend** | React.js, Tailwind CSS |
+| **Backend** | Java Spring Boot |
+| **Database** | MySQL |
+| **Authentication** | JWT-based security |
+| **AI Engine (Upcoming)** | Python ML Service |
+| **Charts & Reports** | Chart.js / Recharts |
 
-## Learn More
+---
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## 📊 Dashboards Summary
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+| Role | Access & Permissions |
+|------|-----------------------|
+| **Admin** | View all data, manage users, system insights |
+| **Store Manager** | Perform CRUD operations, view & record sales |
+| **User** | Browse, add to cart, and buy products |
 
-### Code Splitting
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## 🌈 UI/UX Highlights
+- Clean and colorful interface inspired by modern e-commerce websites  
+- Responsive design with grid-based product cards  
+- Intuitive navigation between dashboards  
+- Professional color palette (teal, blue, gray) for a balanced look  
 
-### Analyzing the Bundle Size
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+## 📅 Project Roadmap
+- [x] Role-based login & dashboards  
+- [x] CRUD operations for Store Manager  
+- [x] Sales recording and reporting  
+- [x] User product shopping feature  
+- [x] Dark/Light mode  
+- [ ] AI forecasting & auto-restock  
+- [ ] Notifications & purchase orders  
 
-### Making a Progressive Web App
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
 
-### Advanced Configuration
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+> *“SmartShelfX — Where AI meets smart inventory management.”*
 
-### Deployment
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
 
-### `npm run build` fails to minify
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
