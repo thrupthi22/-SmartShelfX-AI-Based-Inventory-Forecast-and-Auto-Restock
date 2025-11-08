@@ -1,5 +1,3 @@
-// In src/components/AdminDashboard.js
-
 import React, { useState, useEffect, useContext, useCallback } from 'react';
 import api from '../api/api';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
@@ -14,6 +12,7 @@ import {
   // --- THEME IMPORTS ---
   useTheme
 } from '@mui/material';
+
 // --- ICONS ---
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import BarChartIcon from '@mui/icons-material/BarChart';
@@ -22,8 +21,9 @@ import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import ClearIcon from '@mui/icons-material/Clear';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
-// --- NEW ICON FOR USERS ---
 import PeopleIcon from '@mui/icons-material/People';
+// --- NEW AI ICON ---
+import AiIcon from '@mui/icons-material/AutoAwesome';
 
 import { ThemeContext } from '../ThemeContext';
 
@@ -172,6 +172,7 @@ function AdminDashboard() {
                 <ListItemText primary="Admin Dashboard" />
               </ListItemButton>
             </ListItem>
+
             {/* --- NEW USER MANAGEMENT LINK --- */}
             <ListItem disablePadding>
               <ListItemButton component={RouterLink} to="/admin-users">
@@ -179,14 +180,25 @@ function AdminDashboard() {
                 <ListItemText primary="User Management" />
               </ListItemButton>
             </ListItem>
+
             <ListItem disablePadding>
               <ListItemButton component={RouterLink} to="/sales-report">
                 <ListItemIcon><BarChartIcon /></ListItemIcon>
                 <ListItemText primary="Sales Report" />
               </ListItemButton>
             </ListItem>
+
+            {/* --- NEW AI FORECAST LINK --- */}
+            <ListItem disablePadding>
+              <ListItemButton component={RouterLink} to="/forecast">
+                <ListItemIcon><AiIcon /></ListItemIcon>
+                <ListItemText primary="AI Forecast" />
+              </ListItemButton>
+            </ListItem>
           </List>
+
           <Divider sx={{ my: 2 }} />
+
           <List>
             {/* --- THEME TOGGLE BUTTON --- */}
             <ListItem disablePadding>
@@ -198,6 +210,7 @@ function AdminDashboard() {
               </ListItemButton>
             </ListItem>
 
+            {/* --- LOGOUT --- */}
             <ListItem disablePadding>
               <ListItemButton onClick={handleLogout}>
                 <ListItemIcon><LogoutIcon /></ListItemIcon>
@@ -307,7 +320,7 @@ function AdminDashboard() {
           </Paper>
         )}
 
-        {/* --- Edit Product Modal (Unchanged, now with imageUrl) --- */}
+        {/* --- Edit Product Modal --- */}
         <Modal open={isEditModalOpen} onClose={handleCloseEditModal}>
           <Box component="form" onSubmit={handleUpdateSubmit} sx={modalStyle}>
             <Typography variant="h6">Edit Product (ID: {editingProduct?.id})</Typography>

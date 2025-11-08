@@ -88,7 +88,8 @@ public class SecurityConfig {
         }
 
         @Override
-        protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+        protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+                throws ServletException, IOException {
             try {
                 String header = request.getHeader("Authorization");
                 if (header == null || !header.startsWith("Bearer ")) {
@@ -96,10 +97,16 @@ public class SecurityConfig {
                     return;
                 }
                 String token = header.substring(7);
-                Claims claims = Jwts.parserBuilder().setSigningKey(jwtSecretKey).build().parseClaimsJws(token).getBody();
+                Claims claims = Jwts.parserBuilder()
+                        .setSigningKey(jwtSecretKey)
+                        .build()
+                        .parseClaimsJws(token)
+                        .getBody();
+
                 String email = claims.getSubject();
                 UserDetails userDetails = userDetailsService.loadUserByUsername(email);
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             } catch (Exception e) {
                 SecurityContextHolder.clearContext();
@@ -135,7 +142,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/sales").hasAnyAuthority("USER", "STORE_MANAGER", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/sales/**").hasAnyAuthority("STORE_MANAGER", "ADMIN")
 
-                        // --- NEW RULE: User Management (ADMIN ONLY) ---
+                        // --- Forecast Rules ---
+                        .requestMatchers("/api/forecast/**").hasAnyAuthority("STORE_MANAGER", "ADMIN")
+
+                        // --- User Management (ADMIN ONLY) ---
                         .requestMatchers("/api/users/**").hasAuthority("ADMIN")
 
                         // Default Rule

@@ -309,28 +309,25 @@ function DashboardPage() {
                 <ListItemText primary="Sales Report" />
               </ListItemButton>
             </ListItem>
+
+
+
+          <List>
             <ListItem disablePadding>
-              <ListItemButton disabled>
+              <ListItemButton component={RouterLink} to="/forecast">
                 <ListItemIcon><AiIcon /></ListItemIcon>
                 <ListItemText primary="AI Forecast" />
               </ListItemButton>
             </ListItem>
-            <ListItem disablePadding>
-              <ListItemButton disabled>
-                <ListItemIcon><ReorderIcon /></ListItemIcon>
-                <ListItemText primary="Auto Restock" />
-              </ListItemButton>
-            </ListItem>
           </List>
-          <Divider sx={{ my: 2 }} />
-          <List>
-            <ListItem disablePadding>
-              <ListItemButton onClick={handleLogout}>
-                <ListItemIcon><LogoutIcon /></ListItemIcon>
-                <ListItemText primary="Logout" />
-              </ListItemButton>
-            </ListItem>
-          </List>
+          <ListItem disablePadding>
+                        <ListItemButton disabled>
+                          <ListItemIcon><ReorderIcon /></ListItemIcon>
+                          <ListItemText primary="Auto Restock" />
+                        </ListItemButton>
+                      </ListItem>
+                    </List>
+
         </Box>
       </Drawer>
       {/* --- END SIDEBAR --- */}
