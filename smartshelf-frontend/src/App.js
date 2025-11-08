@@ -18,20 +18,21 @@ import AdminDashboard from './components/AdminDashboard';
 import UserDashboard from './components/UserDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import SalesReportsPage from './components/SalesReportsPage';
+import AdminUsersPage from './components/AdminUsersPage'; // --- NEW IMPORT ---
 
 function App() {
   // --- 1. State to hold the current mode ---
   const [mode, setMode] = useState('light'); // Default to light mode
 
   // --- 2. Function to toggle the mode ---
-  // We use useMemo to ensure this function doesn't get re-created on every render
   const themeContextValue = useMemo(
     () => ({
+      themeMode: mode, // --- ADDED themeMode here so other components can use it ---
       toggleTheme: () => {
         setMode((prevMode) => (prevMode === 'light' ? 'dark' : 'light'));
       },
     }),
-    []
+    [mode] // Added mode dependency so themeMode updates correctly
   );
 
   // --- 3. Select the correct MUI theme based on the state ---
@@ -45,7 +46,7 @@ function App() {
     <ThemeContext.Provider value={themeContextValue}>
       <ThemeProvider theme={theme}>
         <LocalizationProvider dateAdapter={AdapterDateFns}>
-          <CssBaseline /> {/* Applies the theme's background color */}
+          <CssBaseline />
           <Router>
             <Routes>
               {/* --- Public Routes --- */}
@@ -69,6 +70,17 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              {/* --- NEW ADMIN USERS ROUTE --- */}
+              <Route
+                path="/admin-users"
+                element={
+                  <ProtectedRoute allowedRoles={['ADMIN']}>
+                    <AdminUsersPage />
+                  </ProtectedRoute>
+                }
+              />
+              {/* ----------------------------- */}
+
               <Route
                 path="/user-dashboard"
                 element={

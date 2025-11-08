@@ -1,9 +1,10 @@
 // In src/components/UserDashboard.js
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react'; // --- ADDED useContext ---
 import api from '../api/api';
-import { useNavigate } from 'react-router-dom'; // <-- THIS IS THE FIXED LINE
+import { useNavigate } from 'react-router-dom';
 import ShoppingCart from './ShoppingCart';
+import { ThemeContext } from '../ThemeContext'; // --- ADDED ---
 
 // --- MUI IMPORTS ---
 import {
@@ -21,8 +22,11 @@ import {
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import ClearIcon from '@mui/icons-material/Clear';
+import Brightness4Icon from '@mui/icons-material/Brightness4'; // --- ADDED ---
+import Brightness7Icon from '@mui/icons-material/Brightness7'; // --- ADDED ---
 
 function UserDashboard() {
+  const { themeMode, toggleTheme } = useContext(ThemeContext); // --- ADDED ---
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -39,10 +43,10 @@ function UserDashboard() {
     maxStock: '',
   });
 
-  // --- Data Fetching ---
+  // --- Data Fetching (Unchanged) ---
   useEffect(() => {
     fetchProducts(filters);
-  }, []); // We will fix the warning here later
+  }, []);
 
   const fetchProducts = async (currentFilters = filters) => {
     setLoading(true);
@@ -76,7 +80,7 @@ function UserDashboard() {
     navigate('/login');
   };
 
-  // --- Cart Logic ---
+  // --- Cart Logic (Unchanged) ---
   const toggleCart = () => setIsCartOpen(!isCartOpen);
 
   const handleAddToCart = (productToAdd) => {
@@ -141,7 +145,7 @@ function UserDashboard() {
     return cart.reduce((total, item) => total + item.quantity, 0);
   };
 
-  // --- Filter Handlers ---
+  // --- Filter Handlers (Unchanged) ---
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters((prev) => ({
@@ -160,13 +164,20 @@ function UserDashboard() {
 
   // --- RENDER LOGIC ---
   return (
-    <Box sx={{ display: 'flex' }}>
+    // --- UPDATED Box for theme ---
+    <Box sx={{ display: 'flex', bgcolor: 'background.default', minHeight: '100vh' }}>
       <CssBaseline />
       <AppBar component="nav">
         <Toolbar>
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             SmartShelf Store
           </Typography>
+
+          {/* --- ADDED THIS BUTTON --- */}
+          <IconButton sx={{ ml: 1 }} onClick={toggleTheme} color="inherit">
+            {themeMode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
+          </IconButton>
+
           <IconButton
             color="inherit"
             aria-label="open cart"
@@ -196,7 +207,8 @@ function UserDashboard() {
           Browse Products
         </Typography>
 
-        <Paper sx={{ p: 2, mb: 3 }}>
+        {/* --- UPDATED Paper for theme --- */}
+        <Paper sx={{ p: 2, mb: 3, bgcolor: 'background.paper' }}>
           <Grid container spacing={2} alignItems="center">
             <Grid item xs={12} sm={4}>
               <TextField fullWidth label="Filter by Category" name="category" value={filters.category} onChange={handleFilterChange} variant="outlined" size="small" />
@@ -222,7 +234,8 @@ function UserDashboard() {
           <Grid container spacing={3}>
             {products.map((product) => (
               <Grid item key={product.id} xs={12} sm={6} md={4}>
-                <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                {/* --- UPDATED Card for theme --- */}
+                <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'background.paper' }}>
                   <CardMedia
                     component="img"
                     height="140"
@@ -239,7 +252,7 @@ function UserDashboard() {
                     <Typography variant="h6" sx={{ mt: 1 }}>
                       ${product.price.toFixed(2)}
                     </Typography>
-                    <Typography variant="body2" sx={{ color: product.quantity > 0 ? 'green' : 'red' }}>
+                    <Typography variant="body2" sx={{ color: product.quantity > 0 ? (themeMode === 'dark' ? '#55cc55' : 'green') : (themeMode === 'dark' ? '#f77' : 'red') }}>
                       {product.quantity > 0 ? `In Stock (${product.quantity})` : 'Out of Stock'}
                     </Typography>
                   </CardContent>

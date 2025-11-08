@@ -25,13 +25,15 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import javax.crypto.SecretKey;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
-
-import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
 public class SecurityConfig {
@@ -62,8 +64,21 @@ public class SecurityConfig {
         return authConfig.getAuthenticationManager();
     }
 
-    public class JwtTokenFilter extends OncePerRequestFilter {
+    // --- CENTRALIZED CORS CONFIGURATION ---
+    @Bean
+    CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(List.of("http://localhost:3000"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowCredentials(true);
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
 
+    // --- JWT FILTER CLASS ---
+    public class JwtTokenFilter extends OncePerRequestFilter {
         private final UserDetailsService userDetailsService;
         private final SecretKey jwtSecretKey;
 
@@ -73,35 +88,22 @@ public class SecurityConfig {
         }
 
         @Override
-        protected void doFilterInternal(HttpServletRequest request,
-                                        HttpServletResponse response,
-                                        FilterChain filterChain) throws ServletException, IOException {
+        protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
             try {
                 String header = request.getHeader("Authorization");
                 if (header == null || !header.startsWith("Bearer ")) {
                     filterChain.doFilter(request, response);
                     return;
                 }
-
                 String token = header.substring(7);
-
-                Claims claims = Jwts.parserBuilder()
-                        .setSigningKey(jwtSecretKey)
-                        .build()
-                        .parseClaimsJws(token)
-                        .getBody();
-
+                Claims claims = Jwts.parserBuilder().setSigningKey(jwtSecretKey).build().parseClaimsJws(token).getBody();
                 String email = claims.getSubject();
                 UserDetails userDetails = userDetailsService.loadUserByUsername(email);
-
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        userDetails, null, userDetails.getAuthorities());
+                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                 SecurityContextHolder.getContext().setAuthentication(authentication);
-
             } catch (Exception e) {
                 SecurityContextHolder.clearContext();
             }
-
             filterChain.doFilter(request, response);
         }
     }
@@ -111,29 +113,33 @@ public class SecurityConfig {
         return new JwtTokenFilter(userDetailsService, jwtSecretKey);
     }
 
-    // --- THIS BEAN IS UPDATED ---
+    // --- MAIN SECURITY FILTER CHAIN ---
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, JwtTokenFilter jwtTokenFilter) throws Exception {
         http
-                .cors(withDefaults())
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authz -> authz
+                        // Public Endpoints
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/api/auth/**").permitAll() // Allows /login and /register
+                        .requestMatchers("/api/auth/**").permitAll()
 
-                        // --- UPDATED & NEW RULES ---
-
-                        // 1. Allow ANY authenticated user (USER, MANAGER, ADMIN) to READ products
+                        // Product Rules
                         .requestMatchers(HttpMethod.GET, "/api/products", "/api/products/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/products").hasAnyAuthority("STORE_MANAGER", "ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/products/**").hasAnyAuthority("STORE_MANAGER", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/products/**").hasAnyAuthority("STORE_MANAGER", "ADMIN")
 
-                        // 2. Lock down WRITE access (POST, PUT, DELETE) for products to MANAGERS/ADMINS
-                        .requestMatchers("/api/products/**").hasAnyAuthority("STORE_MANAGER", "ADMIN")
+                        // Sales Rules
+                        .requestMatchers(HttpMethod.POST, "/api/sales").hasAnyAuthority("USER", "STORE_MANAGER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/sales/**").hasAnyAuthority("STORE_MANAGER", "ADMIN")
 
-                        // 3. Lock down ALL access for sales to MANAGERS/ADMINS
-                        .requestMatchers("/api/sales/**").hasAnyAuthority("STORE_MANAGER", "ADMIN")
+                        // --- NEW RULE: User Management (ADMIN ONLY) ---
+                        .requestMatchers("/api/users/**").hasAuthority("ADMIN")
 
-                        .anyRequest().authenticated() // All other requests must be authenticated
+                        // Default Rule
+                        .anyRequest().authenticated()
                 );
 
         http.addFilterBefore(jwtTokenFilter, UsernamePasswordAuthenticationFilter.class);

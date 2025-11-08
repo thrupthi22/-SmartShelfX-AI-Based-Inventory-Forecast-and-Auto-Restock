@@ -1,6 +1,6 @@
 // In src/components/AdminDashboard.js
 
-import React, { useState, useEffect, useContext, useCallback } from 'react'; // 1. Import useContext & useCallback
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import api from '../api/api';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 
@@ -11,8 +11,7 @@ import {
   Typography, Paper, CircularProgress, Grid,
   // --- LAYOUT IMPORTS ---
   Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Divider,
-  // --- 2. NEW IMPORTS for Theme ---
-  IconButton,
+  // --- THEME IMPORTS ---
   useTheme
 } from '@mui/material';
 // --- ICONS ---
@@ -21,11 +20,12 @@ import BarChartIcon from '@mui/icons-material/BarChart';
 import LogoutIcon from '@mui/icons-material/Logout';
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import ClearIcon from '@mui/icons-material/Clear';
-// --- 3. NEW ICONS for Theme ---
-import Brightness4Icon from '@mui/icons-material/Brightness4'; // Dark mode
-import Brightness7Icon from '@mui/icons-material/Brightness7'; // Light mode
+import Brightness4Icon from '@mui/icons-material/Brightness4';
+import Brightness7Icon from '@mui/icons-material/Brightness7';
+// --- NEW ICON FOR USERS ---
+import PeopleIcon from '@mui/icons-material/People';
 
-import { ThemeContext } from '../ThemeContext'; // 4. Import our context
+import { ThemeContext } from '../ThemeContext';
 
 const drawerWidth = 240;
 
@@ -47,7 +47,6 @@ const modalStyle = {
 };
 
 function AdminDashboard() {
-  // --- 5. GET THEME AND TOGGLE FUNCTION ---
   const theme = useTheme();
   const colorMode = useContext(ThemeContext);
 
@@ -65,8 +64,6 @@ function AdminDashboard() {
     maxStock: '',
   });
 
-  // --- 6. OPTIMIZED fetchProducts ---
-  // We wrap this in useCallback to fix the useEffect warning
   const fetchProducts = useCallback(async (currentFilters = filters) => {
     setLoading(true);
     setError('');
@@ -91,12 +88,11 @@ function AdminDashboard() {
     } finally {
       setLoading(false);
     }
-  }, [filters, navigate]); // Dependencies for this function
+  }, [filters, navigate]);
 
-  // --- 7. FIXED useEffect ---
   useEffect(() => {
     fetchProducts();
-  }, [fetchProducts]); // Now it correctly depends on the stable fetchProducts function
+  }, [fetchProducts]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -123,7 +119,7 @@ function AdminDashboard() {
     try {
       await api.put(`/products/${editingProduct.id}`, editingProduct);
       handleCloseEditModal();
-      fetchProducts(filters); // Refresh list, keeping filters
+      fetchProducts(filters);
     } catch (err) {
       console.error("Error updating product:", err);
       setError("Failed to update product.");
@@ -158,7 +154,7 @@ function AdminDashboard() {
         sx={{
           width: drawerWidth,
           flexShrink: 0,
-          [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: 'border-box' },
+          [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: 'border-box', bgcolor: 'background.paper' },
         }}
       >
         <Toolbar sx={{ display: 'flex', alignItems: 'center', p: 2 }}>
@@ -176,6 +172,13 @@ function AdminDashboard() {
                 <ListItemText primary="Admin Dashboard" />
               </ListItemButton>
             </ListItem>
+            {/* --- NEW USER MANAGEMENT LINK --- */}
+            <ListItem disablePadding>
+              <ListItemButton component={RouterLink} to="/admin-users">
+                <ListItemIcon><PeopleIcon /></ListItemIcon>
+                <ListItemText primary="User Management" />
+              </ListItemButton>
+            </ListItem>
             <ListItem disablePadding>
               <ListItemButton component={RouterLink} to="/sales-report">
                 <ListItemIcon><BarChartIcon /></ListItemIcon>
@@ -185,7 +188,7 @@ function AdminDashboard() {
           </List>
           <Divider sx={{ my: 2 }} />
           <List>
-            {/* --- 8. NEW THEME TOGGLE BUTTON --- */}
+            {/* --- THEME TOGGLE BUTTON --- */}
             <ListItem disablePadding>
               <ListItemButton onClick={colorMode.toggleTheme}>
                 <ListItemIcon>
@@ -194,7 +197,6 @@ function AdminDashboard() {
                 <ListItemText primary={theme.palette.mode === 'dark' ? 'Light Mode' : 'Dark Mode'} />
               </ListItemButton>
             </ListItem>
-            {/* --- END TOGGLE BUTTON --- */}
 
             <ListItem disablePadding>
               <ListItemButton onClick={handleLogout}>
@@ -226,7 +228,7 @@ function AdminDashboard() {
         </Box>
 
         {/* --- FILTER BAR --- */}
-        <Paper sx={{ p: 2, mb: 3, borderRadius: 3 }}>
+        <Paper sx={{ p: 2, mb: 3, borderRadius: 3, bgcolor: 'background.paper' }}>
           <Grid container spacing={2} alignItems="center">
             <Grid item xs={12} sm={3}>
               <TextField fullWidth label="Filter by Category" name="category" value={filters.category} onChange={handleFilterChange} variant="outlined" size="small" />
@@ -253,7 +255,7 @@ function AdminDashboard() {
 
         {/* --- Product Table (Admin version) --- */}
         {!loading && !error && (
-          <Paper sx={{ width: '100%', overflow: 'hidden', borderRadius: 3 }}>
+          <Paper sx={{ width: '100%', overflow: 'hidden', borderRadius: 3, bgcolor: 'background.paper' }}>
             <TableContainer>
               <Table stickyHeader>
                 <TableHead>
@@ -282,7 +284,7 @@ function AdminDashboard() {
                         </Box>
                       </TableCell>
                       <TableCell>{product.category}</TableCell>
-                      <TableCell sx={{ color: product.quantity < 20 ? 'red' : 'inherit', fontWeight: product.quantity < 20 ? 'bold' : 'normal' }}>
+                      <TableCell sx={{ color: product.quantity < 20 ? (theme.palette.mode === 'dark' ? '#f77' : 'red') : 'inherit', fontWeight: product.quantity < 20 ? 'bold' : 'normal' }}>
                         {product.quantity}
                       </TableCell>
                       <TableCell>${product.price.toFixed(2)}</TableCell>
