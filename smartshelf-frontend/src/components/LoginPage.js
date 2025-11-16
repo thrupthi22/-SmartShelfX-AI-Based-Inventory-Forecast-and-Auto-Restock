@@ -1,10 +1,8 @@
-// In src/components/LoginPage.js
-
 import React, { useState } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-// --- MUI IMPORTS (Unchanged) ---
+// --- MUI IMPORTS ---
 import {
   Button,
   CssBaseline,
@@ -13,10 +11,11 @@ import {
   Grid,
   Box,
   Typography,
-  Container
+  Container,
+  Avatar,
+  Paper
 } from '@mui/material';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
-import Avatar from '@mui/material/Avatar';
 // --- END IMPORTS ---
 
 function LoginPage() {
@@ -25,7 +24,6 @@ function LoginPage() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  // --- THIS FUNCTION IS UPDATED ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -42,21 +40,22 @@ function LoginPage() {
 
       // 2. Save BOTH to localStorage
       localStorage.setItem('token', token);
-      localStorage.setItem('role', role); // <-- NEW
+      localStorage.setItem('role', role);
 
-      // 3. NEW: Role-based redirect logic
+      // 3. Role-based redirect logic
       if (role === "ADMIN") {
           navigate('/admin-dashboard');
       } else if (role === "STORE_MANAGER") {
-          navigate('/dashboard'); // This is now the manager's dashboard
-      } else { // This covers the "USER" role
+          navigate('/dashboard'); // Manager's dashboard
+      } else { // USER role
           navigate('/user-dashboard');
       }
 
     } catch (err) {
       console.error("Login error:", err);
       if (err.response) {
-        setError(err.response.data.message || err.response.data);
+        // Use response.data if it's a string, or response.data.message if it's an object
+        setError(err.response.data.message || err.response.data || "Invalid credentials");
       } else if (err.request) {
         setError("Cannot connect to server. Is your backend running?");
       } else {
@@ -64,28 +63,26 @@ function LoginPage() {
       }
     }
   };
-  // --- END OF UPDATED FUNCTION ---
 
   return (
-    // The rest of your MUI form is unchanged
     <Container component="main" maxWidth="xs">
       <CssBaseline />
-      <Box
+      <Paper
+        elevation={6}
         sx={{
           marginTop: 8,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          border: '1px solid #e0e0e0',
           padding: 4,
-          borderRadius: 2,
-          boxShadow: '0 3px 5px 0 rgba(0,0,0,0.1)'
+          borderRadius: 3,
+          boxShadow: '0 8px 16px 0 rgba(0,0,0,0.1)'
         }}
       >
         <Avatar sx={{ m: 1, bgcolor: 'secondary.main' }}>
           <LockOutlinedIcon />
         </Avatar>
-        <Typography component="h1" variant="h5">
+        <Typography component="h1" variant="h5" sx={{ fontWeight: 'bold' }}>
           Login to SmartShelf
         </Typography>
 
@@ -125,15 +122,16 @@ function LoginPage() {
             type="submit"
             fullWidth
             variant="contained"
-            sx={{ mt: 3, mb: 2 }}
+            sx={{ mt: 3, mb: 2, py: 1.5 }}
           >
             Sign In
           </Button>
 
           <Grid container>
             <Grid item xs>
-              <Link component={RouterLink} to="/forgot-password" variant="body2">
-                Forgot password?
+              {/* --- FORGOT PASSWORD LINK --- */}
+              <Link component={RouterLink} to="/forgot-password" variant="body2" sx={{ color: 'primary.main', fontWeight: 'medium' }}>
+                Change Password
               </Link>
             </Grid>
             <Grid item>
@@ -143,7 +141,7 @@ function LoginPage() {
             </Grid>
           </Grid>
         </Box>
-      </Box>
+      </Paper>
     </Container>
   );
 }

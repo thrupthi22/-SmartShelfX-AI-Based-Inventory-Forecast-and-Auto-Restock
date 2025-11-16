@@ -130,7 +130,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authz -> authz
                         // Public Endpoints
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/api/auth/**").permitAll()
+                        // --- FIX: Ensure forgot-password is explicitly permitted ---
+                        .requestMatchers("/api/auth/**", "/api/auth/forgot-password").permitAll()
 
                         // Product Rules
                         .requestMatchers(HttpMethod.GET, "/api/products", "/api/products/**").authenticated()
@@ -144,6 +145,9 @@ public class SecurityConfig {
 
                         // --- Forecast Rules ---
                         .requestMatchers("/api/forecast/**").hasAnyAuthority("STORE_MANAGER", "ADMIN")
+
+                        // --- POS Rules ---
+                        .requestMatchers("/api/pos/**").hasAnyAuthority("STORE_MANAGER", "ADMIN")
 
                         // --- User Management (ADMIN ONLY) ---
                         .requestMatchers("/api/users/**").hasAuthority("ADMIN")

@@ -1,9 +1,7 @@
-// In src/components/DashboardPage.js
-
-import React, { useState, useEffect, useContext } from 'react'; // --- ADDED useContext ---
+import React, { useState, useEffect, useContext } from 'react';
 import api from '../api/api';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
-import { ThemeContext } from '../ThemeContext'; // --- ADDED ---
+import { ThemeContext } from '../ThemeContext';
 
 // --- MUI IMPORTS ---
 import {
@@ -11,15 +9,17 @@ import {
   TableCell, TableContainer, TableHead, TableRow, TextField, Toolbar,
   Typography, Paper, CircularProgress, FormControl, InputLabel, Select,
   MenuItem, Grid,
-  // --- NEW IMPORTS FOR LAYOUT ---
+  // --- LAYOUT & ALERT COMPONENTS ---
   Drawer,
-  List,
-  ListItem,
+  List, // For the Alert Modal list
+  ListItem, // For the Alert Modal list
   ListItemButton,
-  ListItemIcon,
-  ListItemText,
+  ListItemIcon, // For Alert Modal icon and Sidebar icons
+  ListItemText, // For Alert Modal text and Sidebar text
   Divider,
-  IconButton, // --- ADDED ---
+  IconButton, // For Theme Toggle and Notification Bell
+  Badge, // For Notification Count
+  Chip, // For the Critical Stock Modal label
 } from '@mui/material';
 // --- NEW ICONS ---
 import DashboardIcon from '@mui/icons-material/Dashboard';
@@ -29,12 +29,13 @@ import ReorderIcon from '@mui/icons-material/Reorder';
 import LogoutIcon from '@mui/icons-material/Logout';
 import InventoryIcon from '@mui/icons-material/Inventory';
 import WarningIcon from '@mui/icons-material/Warning';
-import ErrorIcon from '@mui/icons-material/Error';
+import ErrorIcon from '@mui/icons-material/Error'; // For Critical Stock Icon
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import ClearIcon from '@mui/icons-material/Clear';
-import Brightness4Icon from '@mui/icons-material/Brightness4'; // --- ADDED ---
-import Brightness7Icon from '@mui/icons-material/Brightness7'; // --- ADDED ---
+import Brightness4Icon from '@mui/icons-material/Brightness4';
+import Brightness7Icon from '@mui/icons-material/Brightness7';
+import NotificationsIcon from '@mui/icons-material/Notifications'; // For Alert Bell
 // --- END NEW IMPORTS ---
 
 const drawerWidth = 240; // Sidebar width
@@ -49,7 +50,6 @@ const modalStyle = {
 
 // --- NEW: Stat Card Component ---
 function StatCard({ title, value, icon, color = 'text.primary' }) {
-  // ... (StatCard code is unchanged) ...
   return (
     <Paper
       elevation={3}
@@ -60,7 +60,7 @@ function StatCard({ title, value, icon, color = 'text.primary' }) {
         justifyContent: 'space-between',
         alignItems: 'center',
         height: '100%',
-        backgroundColor: 'white', // Note: This is hardcoded. For dark mode, you might want 'background.paper'
+        backgroundColor: 'background.paper', // Use themed background
       }}
     >
       <Box>
@@ -80,20 +80,25 @@ function StatCard({ title, value, icon, color = 'text.primary' }) {
 
 function DashboardPage() {
   // --- State Variables ---
-  const { themeMode, toggleTheme } = useContext(ThemeContext); // --- ADDED ---
+  const { themeMode, toggleTheme } = useContext(ThemeContext);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  // ... (rest of state variables are unchanged) ...
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  // --- NEW: State for Stats ---
+  // --- State for Stats & Alerts ---
   const [stats, setStats] = useState({
     totalProducts: 0,
     lowStockItems: 0,
-    criticalStock: 0,
+    criticalStock: 0, // Used for the alert badge count
     inventoryValue: 0,
   });
+
+  // --- NEW: Alert Modal State ---
+  const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
+  const [criticalStockItems, setCriticalStockItems] = useState([]);
+  // --- END NEW STATE ---
+
 
   // --- Modal States (Unchanged) ---
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -108,12 +113,11 @@ function DashboardPage() {
     category: '', supplier: '', maxStock: '',
   });
 
-  // --- Data Fetching (Unchanged) ---
+  // --- Data Fetching (UPDATED) ---
   useEffect(() => {
     fetchProducts();
   }, []);
 
-  // --- UPDATED fetchProducts to calculate stats (Unchanged) ---
   const fetchProducts = async (currentFilters = filters) => {
     setLoading(true);
     setError('');
@@ -128,21 +132,23 @@ function DashboardPage() {
       const productsData = response.data;
       setProducts(productsData);
 
-      // --- CALCULATE STATS ---
+      // --- CALCULATE STATS & CRITICAL ALERT COUNT ---
       const LOW_STOCK_THRESHOLD = 20;
-      const CRITICAL_STOCK_THRESHOLD = 5;
+      const CRITICAL_STOCK_THRESHOLD = 5; // Alert threshold
+
+      const criticalItems = productsData.filter(p => p.quantity < CRITICAL_STOCK_THRESHOLD);
 
       const total = productsData.length;
       const lowStock = productsData.filter(p => p.quantity < LOW_STOCK_THRESHOLD && p.quantity >= CRITICAL_STOCK_THRESHOLD).length;
-      const criticalStock = productsData.filter(p => p.quantity < CRITICAL_STOCK_THRESHOLD).length;
       const invValue = productsData.reduce((sum, p) => sum + (p.price * p.quantity), 0);
 
       setStats({
         totalProducts: total,
         lowStockItems: lowStock,
-        criticalStock: criticalStock,
+        criticalStock: criticalItems.length, // Set count for the badge
         inventoryValue: invValue.toLocaleString('en-US', { style: 'currency', currency: 'USD' }),
       });
+      setCriticalStockItems(criticalItems); // Set the actual list for the modal
       // --- END STATS CALCULATION ---
 
     } catch (err) {
@@ -158,6 +164,12 @@ function DashboardPage() {
       setLoading(false);
     }
   };
+
+  // --- NEW: Alert Modal Handlers ---
+  const handleOpenAlertModal = () => setIsAlertModalOpen(true);
+  const handleCloseAlertModal = () => setIsAlertModalOpen(false);
+  // --- END NEW HANDLERS ---
+
 
   // --- All handler functions (handleLogout, create, delete, edit, sale, filter) are unchanged ---
   const handleLogout = () => {
@@ -243,8 +255,14 @@ function DashboardPage() {
       await api.post('/sales', newSale);
       handleCloseSaleModal();
       fetchProducts(filters);
-    } catch (err)
-      { /* ... */ }
+    } catch (err) {
+        console.error("Error recording sale:", err);
+        if (err.response && err.response.data) {
+          setError(err.response.data);
+        } else {
+          setError("Failed to record sale.");
+        }
+    }
   };
 
   // --- Filter Handlers ---
@@ -270,10 +288,10 @@ function DashboardPage() {
 
   // --- RENDER LOGIC ---
   return (
-    <Box sx={{ display: 'flex', bgcolor: 'background.default', minHeight: '100vh' }}> {/* Changed to background.default for theme */}
+    <Box sx={{ display: 'flex', bgcolor: 'background.default', minHeight: '100vh' }}>
       <CssBaseline />
 
-      {/* --- NEW SIDEBAR (Unchanged) --- */}
+      {/* --- SIDEBAR --- */}
       <Drawer
         variant="permanent"
         sx={{
@@ -283,7 +301,7 @@ function DashboardPage() {
             width: drawerWidth,
             boxSizing: 'border-box',
             borderRight: '0px',
-            bgcolor: 'background.paper' // Changed for theme
+            bgcolor: 'background.paper'
           },
         }}
       >
@@ -296,7 +314,6 @@ function DashboardPage() {
         <Box sx={{ overflow: 'auto', p: 1 }}>
           <Typography variant="caption" sx={{ pl: 2, color: 'text.secondary' }}>NAVIGATION</Typography>
           <List>
-             {/* ... (List items unchanged) ... */}
              <ListItem disablePadding>
               <ListItemButton component={RouterLink} to="/dashboard" selected>
                 <ListItemIcon><DashboardIcon /></ListItemIcon>
@@ -309,25 +326,37 @@ function DashboardPage() {
                 <ListItemText primary="Sales Report" />
               </ListItemButton>
             </ListItem>
-
-
-
-          <List>
             <ListItem disablePadding>
               <ListItemButton component={RouterLink} to="/forecast">
                 <ListItemIcon><AiIcon /></ListItemIcon>
                 <ListItemText primary="AI Forecast" />
               </ListItemButton>
             </ListItem>
+             {/* ENABLED Restock Requests Link (Module 5) */}
+             <ListItem disablePadding>
+                <ListItemButton component={RouterLink} to="/restock-requests">
+                    <ListItemIcon><ReorderIcon /></ListItemIcon>
+                    <ListItemText primary="Restock Requests" />
+                </ListItemButton>
+             </ListItem>
           </List>
-          <ListItem disablePadding>
-                        <ListItemButton disabled>
-                          <ListItemIcon><ReorderIcon /></ListItemIcon>
-                          <ListItemText primary="Auto Restock" />
-                        </ListItemButton>
-                      </ListItem>
-                    </List>
-
+          <Divider sx={{ my: 2 }} />
+          <List>
+            <ListItem disablePadding>
+              <ListItemButton onClick={toggleTheme}>
+                <ListItemIcon>
+                  {themeMode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
+                </ListItemIcon>
+                <ListItemText primary={themeMode === 'dark' ? 'Light Mode' : 'Dark Mode'} />
+              </ListItemButton>
+            </ListItem>
+            <ListItem disablePadding>
+              <ListItemButton onClick={handleLogout}>
+                <ListItemIcon><LogoutIcon /></ListItemIcon>
+                <ListItemText primary="Logout" />
+              </ListItemButton>
+            </ListItem>
+          </List>
         </Box>
       </Drawer>
       {/* --- END SIDEBAR --- */}
@@ -341,7 +370,19 @@ function DashboardPage() {
             <Typography variant="body1" color="text.secondary">Welcome! Manage sales, products, and see insights at a glance.</Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            {/* --- ADDED THIS BUTTON --- */}
+
+            {/* --- CRITICAL FIX: Notification Bell Icon (Module 6) --- */}
+            <IconButton
+                color="inherit"
+                sx={{ mr: 2, color: stats.criticalStock > 0 ? 'error.main' : 'text.secondary' }}
+                onClick={handleOpenAlertModal}
+            >
+              <Badge badgeContent={stats.criticalStock} color="error">
+                <NotificationsIcon />
+              </Badge>
+            </IconButton>
+            {/* --- END Notification Bell --- */}
+
             <IconButton sx={{ mr: 1 }} onClick={toggleTheme} color="inherit">
               {themeMode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
             </IconButton>
@@ -406,7 +447,7 @@ function DashboardPage() {
         </Grid>
 
         {/* --- FILTER BAR (Unchanged) --- */}
-        <Paper sx={{ p: 2, mb: 3, borderRadius: 3, bgcolor: 'background.paper' }}> {/* Changed for theme */}
+        <Paper sx={{ p: 2, mb: 3, borderRadius: 3, bgcolor: 'background.paper' }}>
           <Grid container spacing={2} alignItems="center">
             {/* ... (Filter inputs unchanged) ... */}
             <Grid item xs={12} sm={3}>
@@ -434,7 +475,7 @@ function DashboardPage() {
 
         {/* --- Product Table (Unchanged) --- */}
         {!loading && !error && (
-          <Paper sx={{ width: '100%', overflow: 'hidden', borderRadius: 3, bgcolor: 'background.paper' }}> {/* Changed for theme */}
+          <Paper sx={{ width: '100%', overflow: 'hidden', borderRadius: 3, bgcolor: 'background.paper' }}>
             <TableContainer>
               <Table stickyHeader>
                 <TableHead>
@@ -485,10 +526,6 @@ function DashboardPage() {
         )}
 
         {/* --- All Modals (Unchanged) --- */}
-        {/* ... (Create Modal) ... */}
-        {/* ... (Edit Modal) ... */}
-        {/* ... (Sale Modal) ... */}
-
         <Modal open={isCreateModalOpen} onClose={handleCloseCreateModal}>
           <Box component="form" onSubmit={handleCreateSubmit} sx={modalStyle}>
             <Typography variant="h6">Add New Product</Typography>
@@ -558,6 +595,32 @@ function DashboardPage() {
             </Box>
           </Box>
         </Modal>
+
+        {/* --- NEW: Alert Modal (Module 6) --- */}
+        <Modal open={isAlertModalOpen} onClose={handleCloseAlertModal}>
+            <Box sx={modalStyle}>
+                <Typography variant="h6" color="error">Critical Stock Alert ({stats.criticalStock} Items)</Typography>
+                <Divider />
+                {criticalStockItems.length > 0 ? (
+                    <List dense>
+                        {criticalStockItems.map((item) => (
+                            <ListItem key={item.id} secondaryAction={
+                                <Chip label={item.quantity} color="error" size="small" />
+                            }>
+                                <ListItemIcon><ErrorIcon color="error" /></ListItemIcon>
+                                <ListItemText primary={item.productName} secondary={`Stock: ${item.quantity}`} />
+                            </ListItem>
+                        ))}
+                    </List>
+                ) : (
+                    <Typography color="text.secondary">No items are currently at critical stock levels (below 5).</Typography>
+                )}
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                    <Button variant="contained" onClick={handleCloseAlertModal}>Close</Button>
+                </Box>
+            </Box>
+        </Modal>
+        {/* --- END NEW MODAL --- */}
 
       </Box>
     </Box>

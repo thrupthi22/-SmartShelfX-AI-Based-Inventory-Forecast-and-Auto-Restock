@@ -21,6 +21,8 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
+import java.util.Map;
+import java.util.Optional; // Import Optional
 
 @RestController
 @RequestMapping("/api/auth")
@@ -44,6 +46,39 @@ public class AuthController {
         this.jwtSecretKey = jwtSecretKey;
     }
 
+    // --- NEW: Direct Password Reset Endpoint ---
+    @PostMapping("/reset-password-direct")
+    public ResponseEntity<?> resetPasswordDirect(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        String oldPassword = request.get("oldPassword");
+        String newPassword = request.get("newPassword");
+
+        if (newPassword == null || newPassword.isEmpty() || newPassword.length() < 6) {
+            return ResponseEntity.badRequest().body("New password must be at least 6 characters long.");
+        }
+
+        Optional<User> userOpt = userRepository.findByEmail(email);
+
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body("Invalid email or password."); // Vague error for security
+        }
+
+        User user = userOpt.get();
+
+        // 1. Verify the old password against the database hash
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid email or old password.");
+        }
+
+        // 2. Hash and update the new password
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        return ResponseEntity.ok("Password updated successfully! You can now log in with your new password.");
+    }
+    // --- END NEW ENDPOINT ---
+
+
     // --- UPDATED REGISTRATION ENDPOINT ---
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody RegisterRequest registerRequest) {
@@ -59,17 +94,12 @@ public class AuthController {
         user.setContact(registerRequest.getContact());
         user.setLocation(registerRequest.getLocation());
 
-        // --- THIS IS THE UPDATED LOGIC ---
-        // It reads the role from the request for the demo.
         try {
-            // Convert the string ("ADMIN") to the enum (Role.ADMIN)
             Role roleToSet = Role.valueOf(registerRequest.getRole().toUpperCase());
             user.setRole(roleToSet);
         } catch (IllegalArgumentException | NullPointerException e) {
-            // If the role is invalid or null, default to USER for safety
             user.setRole(Role.USER);
         }
-        // --- END OF UPDATED LOGIC ---
 
         userRepository.save(user);
 

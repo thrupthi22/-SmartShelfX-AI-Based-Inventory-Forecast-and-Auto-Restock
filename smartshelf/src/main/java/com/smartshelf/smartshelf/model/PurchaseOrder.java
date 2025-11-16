@@ -11,30 +11,23 @@ public class PurchaseOrder {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.EAGER) // Links the PO to a specific product
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
     @Column(nullable = false)
-    private int quantityToOrder;
+    private int quantity; // The quantity of stock requested
 
-    @Enumerated(EnumType.STRING)
+    @Enumerated(EnumType.STRING) // Stores the OrderStatus (PENDING, APPROVED, etc.) as a string
     @Column(nullable = false)
-    private Status status;
+    private OrderStatus status;
 
+    @Column(nullable = false)
     private Instant createdAt;
 
     @PrePersist
     protected void onCreate() {
         createdAt = Instant.now();
-    }
-
-    // --- ENUM for Status ---
-    public enum Status {
-        PENDING,   // AI suggested it, waiting for manager approval
-        APPROVED,  // Manager clicked "Order"
-        ORDERED,   // Sent to supplier
-        RECEIVED   // Added to inventory
     }
 
     // --- Getters and Setters ---
@@ -44,10 +37,10 @@ public class PurchaseOrder {
     public void setId(Long id) { this.id = id; }
     public Product getProduct() { return product; }
     public void setProduct(Product product) { this.product = product; }
-    public int getQuantityToOrder() { return quantityToOrder; }
-    public void setQuantityToOrder(int quantityToOrder) { this.quantityToOrder = quantityToOrder; }
-    public Status getStatus() { return status; }
-    public void setStatus(Status status) { this.status = status; }
+    public int getQuantity() { return quantity; }
+    public void setQuantity(int quantity) { this.quantity = quantity; }
+    public OrderStatus getStatus() { return status; }
+    public void setStatus(OrderStatus status) { this.status = status; }
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
 }

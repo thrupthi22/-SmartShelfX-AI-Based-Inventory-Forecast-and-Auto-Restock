@@ -7,12 +7,13 @@ import {
   AppBar, Box, Button, Container, CssBaseline, Modal, Table, TableBody,
   TableCell, TableContainer, TableHead, TableRow, TextField, Toolbar,
   Typography, Paper, CircularProgress, Grid,
-  // --- LAYOUT IMPORTS ---
+  // --- LAYOUT COMPONENTS ---
   Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Divider,
-  // --- THEME IMPORTS ---
+  // --- INTERACTION/ALERTS ---
+  IconButton, Badge, Chip,
+  // --- THEME ---
   useTheme
 } from '@mui/material';
-
 // --- ICONS ---
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import BarChartIcon from '@mui/icons-material/BarChart';
@@ -22,7 +23,9 @@ import ClearIcon from '@mui/icons-material/Clear';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import PeopleIcon from '@mui/icons-material/People';
-// --- NEW AI ICON ---
+import NotificationsIcon from '@mui/icons-material/Notifications';
+import ErrorIcon from '@mui/icons-material/Error';
+import InventoryIcon from '@mui/icons-material/Inventory';
 import AiIcon from '@mui/icons-material/AutoAwesome';
 
 import { ThemeContext } from '../ThemeContext';
@@ -47,8 +50,14 @@ const modalStyle = {
 };
 
 function AdminDashboard() {
+  const { themeMode, toggleTheme } = useContext(ThemeContext);
   const theme = useTheme();
-  const colorMode = useContext(ThemeContext);
+
+  // --- Alert Modal State & Critical Stock Count ---
+  const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
+  const [criticalStockCount, setCriticalStockCount] = useState(0);
+  const [criticalStockItems, setCriticalStockItems] = useState([]);
+  // --- END NEW STATE ---
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -75,7 +84,17 @@ function AdminDashboard() {
 
     try {
       const response = await api.get('/products', { params });
-      setProducts(response.data);
+      const productsData = response.data;
+      setProducts(productsData);
+
+      // --- CRITICAL: CALCULATE CRITICAL STOCK FOR ALERT ---
+      const CRITICAL_STOCK_THRESHOLD = 5;
+      const criticalItems = productsData.filter(p => p.quantity < CRITICAL_STOCK_THRESHOLD);
+
+      setCriticalStockCount(criticalItems.length);
+      setCriticalStockItems(criticalItems);
+      // --- END ALERT CALCULATION ---
+
     } catch (err) {
       console.error("Error fetching products:", err);
       if (err.response && (err.response.status === 401 || err.response.status === 403)) {
@@ -100,7 +119,12 @@ function AdminDashboard() {
     navigate('/login');
   };
 
-  // --- "Edit" Modal Functions ---
+  // --- NEW: Alert Modal Handlers ---
+  const handleOpenAlertModal = () => setIsAlertModalOpen(true);
+  const handleCloseAlertModal = () => setIsAlertModalOpen(false);
+  // --- END NEW HANDLERS ---
+
+  // --- "Edit" Modal Functions (Unchanged) ---
   const handleOpenEditModal = (product) => {
     setEditingProduct(product);
     setIsEditModalOpen(true);
@@ -126,7 +150,7 @@ function AdminDashboard() {
     }
   };
 
-  // --- Filter Handlers ---
+  // --- Filter Handlers (Unchanged) ---
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters((prev) => ({
@@ -172,45 +196,41 @@ function AdminDashboard() {
                 <ListItemText primary="Admin Dashboard" />
               </ListItemButton>
             </ListItem>
-
-            {/* --- NEW USER MANAGEMENT LINK --- */}
             <ListItem disablePadding>
               <ListItemButton component={RouterLink} to="/admin-users">
                 <ListItemIcon><PeopleIcon /></ListItemIcon>
                 <ListItemText primary="User Management" />
               </ListItemButton>
             </ListItem>
-
             <ListItem disablePadding>
               <ListItemButton component={RouterLink} to="/sales-report">
                 <ListItemIcon><BarChartIcon /></ListItemIcon>
                 <ListItemText primary="Sales Report" />
               </ListItemButton>
             </ListItem>
-
-            {/* --- NEW AI FORECAST LINK --- */}
             <ListItem disablePadding>
               <ListItemButton component={RouterLink} to="/forecast">
                 <ListItemIcon><AiIcon /></ListItemIcon>
                 <ListItemText primary="AI Forecast" />
               </ListItemButton>
             </ListItem>
-          </List>
-
-          <Divider sx={{ my: 2 }} />
-
-          <List>
-            {/* --- THEME TOGGLE BUTTON --- */}
             <ListItem disablePadding>
-              <ListItemButton onClick={colorMode.toggleTheme}>
+              <ListItemButton component={RouterLink} to="/restock-requests">
+                <ListItemIcon><InventoryIcon /></ListItemIcon>
+                <ListItemText primary="Restock Requests" />
+              </ListItemButton>
+            </ListItem>
+          </List>
+          <Divider sx={{ my: 2 }} />
+          <List>
+            <ListItem disablePadding>
+              <ListItemButton onClick={toggleTheme}>
                 <ListItemIcon>
                   {theme.palette.mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
                 </ListItemIcon>
                 <ListItemText primary={theme.palette.mode === 'dark' ? 'Light Mode' : 'Dark Mode'} />
               </ListItemButton>
             </ListItem>
-
-            {/* --- LOGOUT --- */}
             <ListItem disablePadding>
               <ListItemButton onClick={handleLogout}>
                 <ListItemIcon><LogoutIcon /></ListItemIcon>
@@ -225,22 +245,36 @@ function AdminDashboard() {
       {/* --- MAIN CONTENT AREA --- */}
       <Box component="main" sx={{ flexGrow: 1, p: 3, ml: `${drawerWidth}px` }}>
         {/* Header Bar */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
           <Box>
             <Typography variant="h4" sx={{ fontWeight: 'bold' }}>Admin Control Panel</Typography>
             <Typography variant="body1" color="text.secondary">Oversee products and manage system reports.</Typography>
           </Box>
-          <Button
-            variant="outlined"
-            color="primary"
-            component={RouterLink}
-            to="/sales-report"
-          >
-            View Full Sales Report
-          </Button>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            {/* --- Notification Bell Icon --- */}
+            <IconButton
+                color="inherit"
+                sx={{ mr: 2, color: criticalStockCount > 0 ? 'error.main' : 'text.secondary' }}
+                onClick={handleOpenAlertModal}
+            >
+              <Badge badgeContent={criticalStockCount} color="error">
+                <NotificationsIcon />
+              </Badge>
+            </IconButton>
+            {/* --- End Notification Bell --- */}
+
+            <Button
+              variant="outlined"
+              color="primary"
+              component={RouterLink}
+              to="/sales-report"
+            >
+              View Full Sales Report
+            </Button>
+          </Box>
         </Box>
 
-        {/* --- FILTER BAR --- */}
+        {/* --- FILTER BAR (Unchanged) --- */}
         <Paper sx={{ p: 2, mb: 3, borderRadius: 3, bgcolor: 'background.paper' }}>
           <Grid container spacing={2} alignItems="center">
             <Grid item xs={12} sm={3}>
@@ -297,7 +331,7 @@ function AdminDashboard() {
                         </Box>
                       </TableCell>
                       <TableCell>{product.category}</TableCell>
-                      <TableCell sx={{ color: product.quantity < 20 ? (theme.palette.mode === 'dark' ? '#f77' : 'red') : 'inherit', fontWeight: product.quantity < 20 ? 'bold' : 'normal' }}>
+                      <TableCell sx={{ color: product.quantity < 20 ? 'red' : 'inherit', fontWeight: product.quantity < 20 ? 'bold' : 'normal' }}>
                         {product.quantity}
                       </TableCell>
                       <TableCell>${product.price.toFixed(2)}</TableCell>
@@ -320,7 +354,7 @@ function AdminDashboard() {
           </Paper>
         )}
 
-        {/* --- Edit Product Modal --- */}
+        {/* --- Edit Product Modal (Unchanged) --- */}
         <Modal open={isEditModalOpen} onClose={handleCloseEditModal}>
           <Box component="form" onSubmit={handleUpdateSubmit} sx={modalStyle}>
             <Typography variant="h6">Edit Product (ID: {editingProduct?.id})</Typography>
@@ -336,6 +370,32 @@ function AdminDashboard() {
             </Box>
           </Box>
         </Modal>
+
+        {/* --- NEW: Alert Modal (Copied from DashboardPage) --- */}
+        <Modal open={isAlertModalOpen} onClose={handleCloseAlertModal}>
+            <Box sx={modalStyle}>
+                <Typography variant="h6" color="error">Critical Stock Alert ({criticalStockCount} Items)</Typography>
+                <Divider />
+                {criticalStockItems.length > 0 ? (
+                    <List dense>
+                        {criticalStockItems.map((item) => (
+                            <ListItem key={item.id} secondaryAction={
+                                <Chip label={item.quantity} color="error" size="small" />
+                            }>
+                                <ListItemIcon><ErrorIcon color="error" /></ListItemIcon>
+                                <ListItemText primary={item.productName} secondary={`Stock: ${item.quantity}`} />
+                            </ListItem>
+                        ))}
+                    </List>
+                ) : (
+                    <Typography color="text.secondary">No items are currently at critical stock levels (below 5).</Typography>
+                )}
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                    <Button variant="contained" onClick={handleCloseAlertModal}>Close</Button>
+                </Box>
+            </Box>
+        </Modal>
+        {/* --- END NEW MODAL --- */}
 
       </Box>
     </Box>

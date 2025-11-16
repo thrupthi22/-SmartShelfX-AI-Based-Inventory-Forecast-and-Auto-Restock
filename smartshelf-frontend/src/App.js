@@ -18,7 +18,9 @@ import UserDashboard from './components/UserDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import SalesReportsPage from './components/SalesReportsPage';
 import AdminUsersPage from './components/AdminUsersPage';
-import ForecastPage from './components/ForecastPage'; // --- ENSURE THIS IS IMPORTED ---
+import ForecastPage from './components/ForecastPage';
+import RestockRequestsPage from './components/RestockRequestsPage';
+import ResetPasswordPage from './components/ResetPasswordPage'; // <<< CRITICAL: CORRECTED IMPORT NAME >>>
 
 function App() {
   // --- Theme State ---
@@ -49,6 +51,7 @@ function App() {
               {/* --- Public Routes --- */}
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+              <Route path="/forgot-password" element={<ResetPasswordPage />} /> {/* <<< ROUTE USES THE RENAMED COMPONENT >>> */}
 
               {/* --- Protected Routes --- */}
               <Route
@@ -75,7 +78,6 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              {/* --- AI FORECAST ROUTE --- */}
               <Route
                 path="/forecast"
                 element={
@@ -84,7 +86,14 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              {/* ------------------------- */}
+              <Route
+                path="/restock-requests"
+                element={
+                  <ProtectedRoute allowedRoles={['STORE_MANAGER', 'ADMIN']}>
+                    <RestockRequestsPage />
+                  </ProtectedRoute>
+                }
+              />
 
               <Route
                 path="/user-dashboard"

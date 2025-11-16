@@ -6,9 +6,7 @@ import {
     Box, CssBaseline, Drawer, Toolbar, List, ListItem, ListItemButton,
     ListItemIcon, ListItemText, Divider, Typography, Paper,
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Chip, IconButton, CircularProgress,
-    Button,
-    Modal, TextField
+    Chip, IconButton, CircularProgress, Button
 } from '@mui/material';
 // Icons
 import DashboardIcon from '@mui/icons-material/Dashboard';
@@ -19,40 +17,31 @@ import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import PeopleIcon from '@mui/icons-material/People';
 import ShoppingCartCheckoutIcon from '@mui/icons-material/ShoppingCartCheckout';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import SendIcon from '@mui/icons-material/Send';
+import InventoryIcon from '@mui/icons-material/Inventory';
+
 
 const drawerWidth = 240;
 
-// Modal Style (reused from other components)
-const modalStyle = {
-    position: 'absolute', top: '50%', left: '50%',
-    transform: 'translate(-50%, -50%)', width: 400,
-    bgcolor: 'background.paper', border: '2px solid #000',
-    boxShadow: 24, p: 4, display: 'flex', flexDirection: 'column', gap: 2,
-};
-
-
-function ForecastPage() {
+function RestockRequestsPage() {
     const { themeMode, toggleTheme } = useContext(ThemeContext);
-    const [forecasts, setForecasts] = useState([]);
+    const [purchaseOrders, setPurchaseOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
     const role = localStorage.getItem('role');
 
-    const [isPoModalOpen, setIsPoModalOpen] = useState(false);
-    const [poData, setPoData] = useState({ productId: null, productName: '', quantity: 0 });
-
-
     useEffect(() => {
-        fetchForecast();
+        fetchPOs();
     }, []);
 
-    const fetchForecast = async () => {
+    const fetchPOs = async () => {
         setLoading(true);
         try {
-            const response = await api.get('/forecast');
-            setForecasts(response.data);
+            const response = await api.get('/pos');
+            setPurchaseOrders(response.data);
         } catch (err) {
-            console.error("Failed to fetch forecast", err);
+            console.error("Failed to fetch Purchase Orders", err);
              if (err.response && (err.response.status === 401 || err.response.status === 403)) {
                 navigate('/login');
             }
@@ -67,79 +56,65 @@ function ForecastPage() {
         navigate('/login');
     };
 
-    // --- Purchase Order Handlers ---
-    const handleOpenPoModal = (item) => {
-        const suggestedQuantity = Math.max(10, Math.ceil(item.predictedDemand * 3));
-        setPoData({
-            productId: item.productId,
-            productName: item.productName,
-            quantity: suggestedQuantity,
-        });
-        setIsPoModalOpen(true);
-    };
-
-    const handleClosePoModal = () => {
-        setIsPoModalOpen(false);
-        setPoData({ productId: null, productName: '', quantity: 0 });
-    };
-
-    const handlePoSubmit = async (e) => {
-        e.preventDefault();
-
-        // --- CRITICAL FIX: Robust validation and conversion ---
-        const quantityInt = parseInt(poData.quantity, 10);
-
-        if (isNaN(quantityInt) || quantityInt <= 0) {
-            alert("Please enter a valid quantity greater than zero.");
-            return;
-        }
-
+    // --- Action Handlers ---
+    const handleApprove = async (id) => {
         try {
-            await api.post('/pos', {
-                productId: poData.productId,
-                quantity: quantityInt, // Ensure it's the valid integer
-            });
-            handleClosePoModal();
-            alert(`Purchase Order created successfully for ${poData.productName}. Now awaiting approval.`);
-            // Automatically navigate the user to the Restock Requests page after successful creation
-            navigate('/restock-requests');
-
+            // This calls the backend: PENDING -> APPROVED
+            await api.put(`/pos/${id}/approve`);
+            alert('Purchase Order approved and sent for ordering!');
+            fetchPOs(); // Refresh list
         } catch (err) {
-            console.error("Failed to create PO:", err);
-            // Log the specific error response from the server if available
-            if (err.response && err.response.data) {
-                console.error("Server Response:", err.response.data);
-            }
-            alert("Failed to create Purchase Order. Please check the console for server error details.");
+            console.error("Failed to approve PO:", err);
+            alert("Failed to approve PO.");
         }
     };
-    // --- END PO HANDLERS ---
 
-    // Helper for status chip color
+    const handleReceive = async (id) => {
+        try {
+            // This calls the backend: APPROVED/ORDERED -> RECEIVED (and updates inventory)
+            await api.put(`/pos/${id}/receive`);
+            alert('Stock received! Inventory updated successfully!');
+            fetchPOs(); // Refresh list and show new RECEIVED status
+        } catch (err) {
+            console.error("Failed to receive PO:", err);
+            alert("Failed to mark as received.");
+        }
+    };
+
+    // Helper for status chip color and icon
     const getStatusChip = (status) => {
         let chipColor = 'default';
-        let variant = 'outlined';
-        if (status === 'RESTOCK NEEDED') {
-            chipColor = 'error';
-            variant = 'filled';
-        } else if (status === 'OVERSTOCKED') {
+        let chipIcon = null;
+
+        if (status === 'PENDING') {
             chipColor = 'warning';
-            variant = 'outlined';
-        } else {
+            chipIcon = <SendIcon />;
+        } else if (status === 'APPROVED' || status === 'ORDERED') { // <<< FIX: Using APPROVED/ORDERED for in-transit
+            chipColor = 'info';
+            chipIcon = <InventoryIcon />;
+        } else if (status === 'RECEIVED') { // <<< FIX: Using RECEIVED for final status
             chipColor = 'success';
-            variant = 'outlined';
+            chipIcon = <CheckCircleIcon />;
         }
 
         return (
             <Chip
                 label={status}
                 color={chipColor}
-                variant={variant}
+                icon={chipIcon}
+                variant="filled"
+                size="small"
                 sx={{ fontWeight: 'bold' }}
             />
         );
     };
 
+    // Helper to format date
+    const formatDate = (dateString) => {
+        return new Date(dateString).toLocaleDateString('en-US', {
+            year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+    };
 
     return (
         <Box sx={{ display: 'flex', bgcolor: 'background.default', minHeight: '100vh' }}>
@@ -155,7 +130,7 @@ function ForecastPage() {
             >
                 <Toolbar sx={{ p: 2 }}>
                     <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-                        SmartShelf AI
+                        Restock Hub
                     </Typography>
                 </Toolbar>
                 <Box sx={{ overflow: 'auto' }}>
@@ -179,21 +154,15 @@ function ForecastPage() {
                         )}
 
                         <ListItem disablePadding>
-                            <ListItemButton component={RouterLink} to="/sales-report">
-                                <ListItemIcon><BarChartIcon /></ListItemIcon>
-                                <ListItemText primary="Sales Report" />
-                            </ListItemButton>
-                        </ListItem>
-                        <ListItem disablePadding>
-                            <ListItemButton component={RouterLink} to="/forecast" selected>
-                                <ListItemIcon><AiIcon sx={{ color: '#7c4dff' }} /></ListItemIcon>
+                            <ListItemButton component={RouterLink} to="/forecast">
+                                <ListItemIcon><AiIcon /></ListItemIcon>
                                 <ListItemText primary="AI Forecast" />
                             </ListItemButton>
                         </ListItem>
-                        {/* --- Restock Requests Link --- */}
-                        <ListItem disablePadding>
-                            <ListItemButton component={RouterLink} to="/restock-requests">
-                                <ListItemIcon><ShoppingCartCheckoutIcon /></ListItemIcon>
+                        {/* THIS PAGE IS ACTIVE */}
+                         <ListItem disablePadding>
+                            <ListItemButton component={RouterLink} to="/restock-requests" selected>
+                                <ListItemIcon><ShoppingCartCheckoutIcon sx={{ color: 'warning.main' }} /></ListItemIcon>
                                 <ListItemText primary="Restock Requests" />
                             </ListItemButton>
                         </ListItem>
@@ -222,10 +191,10 @@ function ForecastPage() {
             <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
                 <Toolbar />
                 <Typography variant="h4" sx={{ mb: 1, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
-                   <AiIcon fontSize="large" sx={{ color: '#7c4dff' }} /> AI Demand Forecast
+                   <ShoppingCartCheckoutIcon fontSize="large" color="warning" /> Restock Requests
                 </Typography>
                 <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-                    Predictive analysis based on historical sales data to prevent stockouts.
+                    Manage and process Purchase Orders generated by the forecast system.
                 </Typography>
 
                 {loading ? (
@@ -234,36 +203,51 @@ function ForecastPage() {
                     <Paper sx={{ width: '100%', overflow: 'hidden', borderRadius: 3, boxShadow: 3, bgcolor: 'background.paper' }}>
                         <TableContainer>
                             <Table>
-                                <TableHead sx={{ bgcolor: 'primary.main' }}>
+                                <TableHead sx={{ bgcolor: 'warning.main' }}> {/* Warning/Orange header for restock urgency */}
                                     <TableRow>
-                                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Product Name</TableCell>
-                                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="right">Current Stock</TableCell>
-                                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="right">Predicted Next Week Demand</TableCell>
+                                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>PO ID</TableCell>
+                                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Product</TableCell>
+                                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Supplier</TableCell>
+                                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="right">Quantity</TableCell>
+                                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Created At</TableCell>
                                         <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">Status</TableCell>
-                                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">Action</TableCell>
+                                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">Process</TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
-                                    {forecasts.map((item) => (
-                                        <TableRow key={item.productId} hover>
-                                            <TableCell component="th" scope="row" sx={{ fontWeight: 'medium' }}>
-                                                {item.productName}
-                                            </TableCell>
-                                            <TableCell align="right">{item.currentStock}</TableCell>
-                                            <TableCell align="right" sx={{ fontWeight: 'bold' }}>{item.predictedDemand}</TableCell>
+                                    {purchaseOrders.map((po) => (
+                                        <TableRow key={po.id} hover>
+                                            <TableCell>{po.id}</TableCell>
+                                            <TableCell sx={{ fontWeight: 'medium' }}>{po.product.productName}</TableCell>
+                                            <TableCell>{po.product.supplier}</TableCell>
+                                            <TableCell align="right" sx={{ fontWeight: 'bold' }}>{po.quantity}</TableCell>
+                                            <TableCell>{formatDate(po.createdAt)}</TableCell>
                                             <TableCell align="center">
-                                                {getStatusChip(item.status)}
+                                                {getStatusChip(po.status)}
                                             </TableCell>
                                             <TableCell align="center">
-                                                {item.status === 'RESTOCK NEEDED' && (
+                                                {po.status === 'PENDING' && (
                                                     <Button
                                                         variant="contained"
-                                                        size="small"
                                                         color="secondary"
-                                                        onClick={() => handleOpenPoModal(item)}
+                                                        size="small"
+                                                        onClick={() => handleApprove(po.id)}
                                                     >
-                                                        Create PO
+                                                        Approve & Order
                                                     </Button>
+                                                )}
+                                                {(po.status === 'APPROVED' || po.status === 'ORDERED') && ( // <<< FIX: Check for both approved/ordered
+                                                    <Button
+                                                        variant="contained"
+                                                        color="success"
+                                                        size="small"
+                                                        onClick={() => handleReceive(po.id)}
+                                                    >
+                                                        Mark as Received
+                                                    </Button>
+                                                )}
+                                                {po.status === 'RECEIVED' && ( // <<< FIX: Check for RECEIVED
+                                                    <Chip label="Done" color="success" size="small" variant="outlined" />
                                                 )}
                                             </TableCell>
                                         </TableRow>
@@ -274,35 +258,8 @@ function ForecastPage() {
                     </Paper>
                 )}
             </Box>
-
-            {/* --- NEW Purchase Order Modal --- */}
-            <Modal open={isPoModalOpen} onClose={handleClosePoModal}>
-                <Box component="form" onSubmit={handlePoSubmit} sx={modalStyle}>
-                    <Typography variant="h6">Create Restock Order</Typography>
-                    <Typography variant="body1" color="text.secondary">
-                        Product: <strong>{poData.productName}</strong>
-                    </Typography>
-                    <TextField
-                        name="quantity"
-                        label="Quantity to Order"
-                        type="number"
-                        inputProps={{ min: 1 }}
-                        value={poData.quantity}
-                        onChange={(e) => setPoData(prev => ({ ...prev, quantity: e.target.value }))}
-                        required
-                        fullWidth
-                    />
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 2 }}>
-                        <Button variant="outlined" onClick={handleClosePoModal}>Cancel</Button>
-                        <Button variant="contained" color="success" type="submit">
-                            Submit PO
-                        </Button>
-                    </Box>
-                </Box>
-            </Modal>
-            {/* --- END NEW Purchase Order Modal --- */}
         </Box>
     );
 }
 
-export default ForecastPage;
+export default RestockRequestsPage;
