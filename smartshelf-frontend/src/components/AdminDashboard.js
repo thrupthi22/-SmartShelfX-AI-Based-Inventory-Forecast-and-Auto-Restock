@@ -19,7 +19,7 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import LogoutIcon from '@mui/icons-material/Logout';
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
-import ClearIcon from '@mui/icons-material/Clear';
+import ClearIcon from '@mui/icons-material/Clear'; // <<< FIXED: Added ClearIcon
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import PeopleIcon from '@mui/icons-material/People';
@@ -27,6 +27,8 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import ErrorIcon from '@mui/icons-material/Error';
 import InventoryIcon from '@mui/icons-material/Inventory';
 import AiIcon from '@mui/icons-material/AutoAwesome';
+import LocalShippingIcon from '@mui/icons-material/LocalShipping';
+import AnalyticsIcon from '@mui/icons-material/Analytics';
 
 import { ThemeContext } from '../ThemeContext';
 
@@ -219,6 +221,18 @@ function AdminDashboard() {
                 <ListItemIcon><InventoryIcon /></ListItemIcon>
                 <ListItemText primary="Restock Requests" />
               </ListItemButton>
+            </ListItem>
+            <ListItem disablePadding>
+                <ListItemButton component={RouterLink} to="/suppliers">
+                    <ListItemIcon><LocalShippingIcon /></ListItemIcon>
+                    <ListItemText primary="Suppliers" />
+                </ListItemButton>
+            </ListItem>
+             <ListItem disablePadding>
+                <ListItemButton component={RouterLink} to="/analytics">
+                    <ListItemIcon><AnalyticsIcon /></ListItemIcon>
+                    <ListItemText primary="Analytics" />
+                </ListItemButton>
             </ListItem>
           </List>
           <Divider sx={{ my: 2 }} />

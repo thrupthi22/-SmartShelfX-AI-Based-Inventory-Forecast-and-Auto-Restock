@@ -20,7 +20,9 @@ import SalesReportsPage from './components/SalesReportsPage';
 import AdminUsersPage from './components/AdminUsersPage';
 import ForecastPage from './components/ForecastPage';
 import RestockRequestsPage from './components/RestockRequestsPage';
-import ResetPasswordPage from './components/ResetPasswordPage'; // <<< CRITICAL: CORRECTED IMPORT NAME >>>
+import ResetPasswordPage from './components/ResetPasswordPage';
+import AnalyticsPage from './components/AnalyticsPage';
+import SupplierManagementPage from './components/SupplierManagementPage'; // <<< NEW IMPORT ADDED >>>
 
 function App() {
   // --- Theme State ---
@@ -51,7 +53,7 @@ function App() {
               {/* --- Public Routes --- */}
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
-              <Route path="/forgot-password" element={<ResetPasswordPage />} /> {/* <<< ROUTE USES THE RENAMED COMPONENT >>> */}
+              <Route path="/forgot-password" element={<ResetPasswordPage />} />
 
               {/* --- Protected Routes --- */}
               <Route
@@ -91,6 +93,22 @@ function App() {
                 element={
                   <ProtectedRoute allowedRoles={['STORE_MANAGER', 'ADMIN']}>
                     <RestockRequestsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/analytics"
+                element={
+                  <ProtectedRoute allowedRoles={['STORE_MANAGER', 'ADMIN']}>
+                    <AnalyticsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/suppliers" // <<< SUPPLIER MANAGEMENT ROUTE ADDED >>>
+                element={
+                  <ProtectedRoute allowedRoles={['STORE_MANAGER', 'ADMIN']}>
+                    <SupplierManagementPage />
                   </ProtectedRoute>
                 }
               />
