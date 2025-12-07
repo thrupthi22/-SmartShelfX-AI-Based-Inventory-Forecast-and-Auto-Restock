@@ -1,19 +1,20 @@
 package com.smartshelf.smartshelf.controller;
 
 import com.smartshelf.smartshelf.dto.SalesRequest;
-import com.smartshelf.smartshelf.dto.SalesResponse; // <-- NEW IMPORT
+import com.smartshelf.smartshelf.dto.SalesResponse;
 import com.smartshelf.smartshelf.model.Product;
 import com.smartshelf.smartshelf.model.Sales;
 import com.smartshelf.smartshelf.repository.ProductRepository;
 import com.smartshelf.smartshelf.repository.SalesRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.format.annotation.DateTimeFormat; // <-- NEW IMPORT
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.Instant; // <-- NEW IMPORT
+import java.time.Instant;
+import java.time.LocalDate; // <<< ADDED
+import java.time.ZoneId; // <<< ADDED
 import java.util.List;
-// We need this import for .stream() and .toList()
 import java.util.stream.Collectors;
 
 @RestController
@@ -57,30 +58,36 @@ public class SalesController {
         Sales newSale = new Sales();
         newSale.setProduct(product);
         newSale.setQuantitySold(salesRequest.getQuantitySold());
+        newSale.setSaleDate(Instant.now()); // Ensure sale date is recorded
 
         Sales savedSale = salesRepository.save(newSale);
         return ResponseEntity.ok(savedSale);
     }
 
     /**
-     * Retrieves all sales records for reporting.
+     * Retrieves sales records for reporting within a date range.
      */
-    // --- UPDATED getSalesReport method ---
+    // --- UPDATED getSalesReport method (FIXED DATE TYPES) ---
     @GetMapping("/report")
     public List<SalesResponse> getSalesReport(
-            // We accept dates in ISO format (e.g., 2025-11-01T00:00:00Z)
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant endDate
+            // FIX: Accept as LocalDate (YYYY-MM-DD string) to match frontend output
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
     ) {
+        // If dates are provided, convert them to Instant range for the repository
         if (startDate != null && endDate != null) {
-            // If both dates are provided, use the new filter
-            return salesRepository.findBySaleDateBetween(startDate, endDate).stream()
-                    .map(SalesResponse::new) // Convert each Sale to a SalesResponse
-                    .collect(Collectors.toList()); // Use .collect(Collectors.toList()) for compatibility
+            // Start of day for the start date
+            Instant startInstant = startDate.atStartOfDay(ZoneId.systemDefault()).toInstant();
+            // End of day for the end date (1 nanosecond before the next day starts)
+            Instant endInstant = endDate.atStartOfDay(ZoneId.systemDefault()).plusDays(1).minusNanos(1).toInstant();
+
+            return salesRepository.findBySaleDateBetween(startInstant, endInstant).stream()
+                    .map(SalesResponse::new)
+                    .collect(Collectors.toList());
         } else {
-            // Otherwise, just return all sales
+            // If no dates are provided (initial load), return all sales
             return salesRepository.findAll().stream()
-                    .map(SalesResponse::new) // Convert each Sale to a SalesResponse
+                    .map(SalesResponse::new)
                     .collect(Collectors.toList());
         }
     }
