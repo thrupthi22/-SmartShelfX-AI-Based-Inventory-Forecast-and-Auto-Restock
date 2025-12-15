@@ -1,109 +1,133 @@
-# 🧠 SmartShelfX – AI-Based Inventory Forecast & Auto-Restock System
+# 🚀 SmartShelf: AI-Powered Inventory Management System
 
-SmartShelfX is a full-stack AI-powered inventory management platform that automates restocking and optimizes inventory levels.  
-It uses predictive analytics to forecast demand, prevent stockouts, and improve supply chain efficiency.  
-Built with **React (frontend)**, **Spring Boot (backend)**, and **MySQL (database)**.
-
----
-
-## 🚀 Features Overview
-
-### 🔐 User & Role Management
-- Login and registration with roles: **Admin**, **Store Manager**, and **User**
-- Secure authentication system with role-based dashboard access  
-- Location field included during registration  
-- Roles:
-  - **Admin** → View system stats, manage users  
-  - **Store Manager** → Manage products, view and record sales  
-  - **User** → Browse and purchase products  
+**SmartShelf** is a secure, role-based platform designed to optimize retail inventory management.  
+It uses an **AI-powered forecasting module** to predict demand, automates the purchase order workflow, and provides **real-time sales reporting** and **critical stock alerts**.
 
 ---
 
-### 🧾 Inventory Management (CRUD Operations)
-- Store Manager can **Add / Edit / Delete / View** products  
-- Product details include:
-  - Product ID, Name, Category, Quantity, Price, Supplier  
-- Real-time stock updates reflected across dashboards  
+## 🌟 Key Features
+
+### 🔐 Role-Based Access Control (RBAC)
+- Secure authentication and authorization using **JWT (JSON Web Tokens)**.
+- Roles: **ADMIN**, **STORE_MANAGER**, and **USER**.
+
+### 📦 Product Management
+- Full **CRUD** (Create, Read, Update, Delete) functionality for inventory items.
+
+### 📊 Sales Reporting
+- Dynamic, date-filtered **sales data visualization** (Revenue Trend Graph).
+- Accurate **Total Revenue** calculation.
+
+### 📁 Data Export
+- Export detailed sales reports to **Excel (.xlsx)**.
+
+### 🤖 AI Demand Forecasting
+- Predicts future stock needs using historical sales data.
+- Provides intelligent **restock suggestions**.
+
+### ⚙️ Automated Restock Workflow
+- Manages **Purchase Orders (PO)** through status transitions:
+  ```
+  PENDING → APPROVED → RECEIVED
+  ```
+- Automatically updates inventory levels upon receipt.
+
+### 🚨 Critical Stock Alerts
+- Real-time dashboard alerts for items below critical thresholds.
 
 ---
 
-### 💰 Sales Management
-- Store Manager can record daily or weekly product sales  
-- Sales reports can be filtered by date or product  
-- Data stored in the database for future AI analysis  
+## 💻 Technology Stack
+
+| Component | Technology | Description |
+|------------|-------------|-------------|
+| **Backend** | Java 17, Spring Boot 3 | Handles business logic, security (JWT), and REST API endpoints. |
+| **Frontend** | React, JavaScript | Built with React Router, Material-UI (MUI) for UI/UX, and Recharts for visualization. |
+| **Database** | MySQL / MariaDB | Persistent storage for all entities (Users, Products, Sales, POs, etc.). |
+| **Security** | JSON Web Tokens (JWT) | Stateless authentication and token-based authorization. |
 
 ---
 
-### 🛒 User Shopping Dashboard
-- Users can view all available products in a **colorful, shopping-style UI**  
-- Features **“Add to Cart”** and **“Buy Now”** options  
-- Purchases automatically update the **Sales Record Table**  
-- Store Manager dashboard reflects new sales instantly  
+## 🛠️ Setup and Installation Guide
+
+To run **SmartShelf** locally, you’ll need to set up the **Backend**, **Database**, and **Frontend** separately.
 
 ---
 
-### 🌗 Dark / Light Mode
-- Toggle between **Dark** and **Light** themes  
-- Smooth transitions and color adjustments for accessibility  
-- Theme preference saved locally for user convenience  
+### 1️⃣ Database Setup (MySQL)
+
+1. Ensure you have **MySQL** or **MariaDB** running.
+2. Create a new database named:
+   ```sql
+   CREATE DATABASE smartshelf_db;
+   ```
+3. The Spring Boot application will automatically create all necessary tables (`users`, `products`, `sales`, `purchase_orders`, etc.) via Hibernate/JPA.
 
 ---
 
-### 🤖 AI Forecast & Auto-Restock (Upcoming)
-- Analyze historical sales data  
-- Predict product demand  
-- Auto-generate restock suggestions and purchase orders  
-- Integration planned with **Python (TensorFlow / Scikit-learn)**  
+### 2️⃣ Backend Setup (Spring Boot)
+
+1. Navigate to the backend directory:
+   ```bash
+   cd smartshelf-backend/
+   ```
+
+2. Configure **application.properties**:
+   ```properties
+   spring.datasource.url=jdbc:mysql://localhost:3306/smartshelf_db
+   spring.datasource.username=your_db_username
+   spring.datasource.password=your_db_password
+   spring.jpa.hibernate.ddl-auto=update
+   ```
+
+   *(Optional) Configure JWT secrets if necessary.*
+
+3. Run the application:
+   ```bash
+   ./mvnw spring-boot:run
+   ```
+
+   The backend should start on:  
+   👉 http://localhost:8080
 
 ---
 
-## 🧰 Tech Stack
+### 3️⃣ Frontend Setup (React)
 
-| Layer | Technology |
-|-------|-------------|
-| **Frontend** | React.js, Tailwind CSS |
-| **Backend** | Java Spring Boot |
-| **Database** | MySQL |
-| **Authentication** | JWT-based security |
-| **AI Engine (Upcoming)** | Python ML Service |
-| **Charts & Reports** | Chart.js / Recharts |
+1. Navigate to the frontend directory:
+   ```bash
+   cd smartshelf-frontend/
+   ```
 
----
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-## 📊 Dashboards Summary
+   If you face dependency issues (e.g., with `jspdf-autotable`), try:
+   ```bash
+   npm install --force
+   ```
 
-| Role | Access & Permissions |
-|------|-----------------------|
-| **Admin** | View all data, manage users, system insights |
-| **Store Manager** | Perform CRUD operations, view & record sales |
-| **User** | Browse, add to cart, and buy products |
+3. Run the frontend:
+   ```bash
+   npm start
+   ```
 
----
-
-## 🌈 UI/UX Highlights
-- Clean and colorful interface inspired by modern e-commerce websites  
-- Responsive design with grid-based product cards  
-- Intuitive navigation between dashboards  
-- Professional color palette (teal, blue, gray) for a balanced look  
+   The application will open in your browser at:  
+   👉 http://localhost:3000
 
 ---
 
-## 📅 Project Roadmap
-- [x] Role-based login & dashboards  
-- [x] CRUD operations for Store Manager  
-- [x] Sales recording and reporting  
-- [x] User product shopping feature  
-- [x] Dark/Light mode  
-- [ ] AI forecasting & auto-restock  
-- [ ] Notifications & purchase orders  
+## 🔑 Default Credentials
+
+For initial testing, use the following default users (ensure they are seeded manually or via API):
+
+| Role | Username | Password | Access Level |
+|------|-----------|-----------|---------------|
+| **ADMIN** | admin | password | Full Control, User Management |
+| **MANAGER** | manager | password | Product CRUD, AI, Reports, Restock |
+| **USER** | user | password | Shopping / Viewing |
 
 ---
 
-
-
-> *“SmartShelfX — Where AI meets smart inventory management.”*
-
-
-
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
